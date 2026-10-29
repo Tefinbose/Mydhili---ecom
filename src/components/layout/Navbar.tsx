@@ -121,7 +121,7 @@ export default function Navbar() {
         }`}
       >
         {/* Header container */}
-        <div className="relative mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:h-20 sm:px-6 lg:px-10">
+        <div className="relative mx-auto flex h-20 max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:h-24 lg:px-10">
           {/* Left: Mobile hamburger menu / Desktop Logo */}
           <div className="flex items-center">
             <button
@@ -153,7 +153,7 @@ export default function Navbar() {
                   width={759}
                   height={566}
                   priority
-                  className="h-12 w-auto object-contain xl:h-14"
+                  className="h-16 w-auto object-contain lg:h-18 xl:h-20"
                 />
               </div>
             </Link>
@@ -173,7 +173,7 @@ export default function Navbar() {
                 width={759}
                 height={566}
                 priority
-                className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105 sm:h-11"
+                className="h-[52px] w-auto object-contain transition-transform duration-300 group-hover:scale-105 sm:h-14"
               />
             </Link>
           </div>
@@ -326,7 +326,7 @@ export default function Navbar() {
                 alt="Mydhili Boutique logo"
                 width={759}
                 height={566}
-                className="h-10 w-auto object-contain"
+                className="h-14 w-auto object-contain"
               />
             </Link>
             <p className="text-[8px] font-medium uppercase tracking-[0.24em] text-[#9A6B35]">
