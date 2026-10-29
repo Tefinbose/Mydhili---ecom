@@ -12,6 +12,7 @@ import {
   UserRound,
   ChevronDown,
   ArrowUpRight,
+  Sparkles,
 } from "lucide-react";
 
 type Category = {
@@ -110,9 +111,11 @@ export default function Navbar() {
     <>
       {/* Top Announcement Strip — in natural page flow so scrolling never collapses layout height or vibrates */}
       <div className="bg-[#380712] py-2 text-center text-[10px] font-medium uppercase tracking-[0.22em] text-[#F5DFC0] sm:text-[11px] sm:tracking-[0.25em]">
-        <span className="text-[#D4AF69]">✦</span>
-        <span className="mx-2">A little tradition, a lot of elegance</span>
-        <span className="text-[#D4AF69]">✦</span>
+        <div className="inline-flex items-center justify-center gap-2">
+          <Sparkles size={11} className="text-[#D4AF69]" />
+          <span>A little tradition, a lot of elegance</span>
+          <Sparkles size={11} className="text-[#D4AF69]" />
+        </div>
       </div>
 
       <header

@@ -3,6 +3,17 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
+import {
+  Package,
+  IndianRupee,
+  Clock,
+  Truck,
+  Search,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+} from "lucide-react";
 
 type OrderItem = {
   name: string;
@@ -157,20 +168,20 @@ export default function AdminOrdersPage() {
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3.5">
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-[#D4AF69]/60 shadow-sm">
+            <div className="relative flex h-14 w-auto items-center">
               <Image
                 src="/logo/logo.png"
                 alt="Mydhili Boutique"
-                fill
-                sizes="48px"
-                className="object-cover"
+                width={759}
+                height={566}
+                className="h-12 w-auto object-contain"
               />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9a6b35]">
                 MYDHILI BOUTIQUE
               </p>
-              <h1 className="mt-1 text-2xl font-semibold text-[#380712] sm:text-3xl">
+              <h1 className="mt-0.5 text-2xl font-semibold text-[#380712] sm:text-3xl">
                 Orders
               </h1>
               <p className="text-xs text-gray-600 sm:text-sm">
@@ -183,9 +194,10 @@ export default function AdminOrdersPage() {
             type="button"
             onClick={() => void loadOrders()}
             disabled={loading}
-            className="rounded-xl border border-[#dfd0c7] bg-white px-5 py-3 text-sm font-medium text-[#380712] hover:bg-[#f7eee8] disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl border border-[#dfd0c7] bg-white px-5 py-3 text-sm font-medium text-[#380712] shadow-sm transition hover:bg-[#f7eee8] disabled:opacity-60"
           >
-            {loading ? "Refreshing..." : "Refresh orders"}
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            <span>{loading ? "Refreshing..." : "Refresh orders"}</span>
           </button>
         </div>
 
@@ -193,33 +205,43 @@ export default function AdminOrdersPage() {
           <SummaryCard
             title="Total orders"
             value={String(summary.totalOrders)}
+            icon={Package}
           />
           <SummaryCard
             title="Paid revenue"
             value={formatCurrency(summary.totalRevenue)}
+            icon={IndianRupee}
           />
           <SummaryCard
             title="Pending orders"
             value={String(summary.pendingOrders)}
+            icon={Clock}
           />
           <SummaryCard
             title="COD orders"
             value={String(summary.codOrders)}
+            icon={Truck}
           />
         </section>
 
         <section className="mt-8 rounded-2xl border border-[#eadfdc] bg-white p-4 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row">
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-              placeholder="Search order number, customer, email or phone..."
-              className="min-w-0 flex-1 rounded-xl border border-[#e6d9d5] px-4 py-3 text-sm outline-none focus:border-[#9a6b35]"
-            />
+            <div className="relative min-w-0 flex-1">
+              <Search
+                size={18}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search order number, customer, email or phone..."
+                className="w-full rounded-xl border border-[#e6d9d5] py-3 pl-10 pr-4 text-sm outline-none transition focus:border-[#9a6b35]"
+              />
+            </div>
 
             <select
               value={status}
@@ -377,18 +399,20 @@ export default function AdminOrdersPage() {
                 type="button"
                 disabled={page <= 1 || loading}
                 onClick={() => setPage((current) => current - 1)}
-                className="rounded-xl border border-[#dfd0c7] px-4 py-2 text-sm disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfd0c7] bg-white px-4 py-2 text-sm font-medium text-[#380712] transition hover:bg-[#FAF7F2] disabled:opacity-40"
               >
-                Previous
+                <ChevronLeft size={16} />
+                <span>Previous</span>
               </button>
 
               <button
                 type="button"
                 disabled={page >= totalPages || loading}
                 onClick={() => setPage((current) => current + 1)}
-                className="rounded-xl bg-[#380712] px-4 py-2 text-sm text-white disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#380712] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#520A1A] disabled:opacity-40"
               >
-                Next
+                <span>Next</span>
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>
@@ -401,14 +425,23 @@ export default function AdminOrdersPage() {
 function SummaryCard({
   title,
   value,
+  icon: Icon,
 }: {
   title: string;
   value: string;
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
 }) {
   return (
-    <div className="rounded-2xl border border-[#eadfdc] bg-white p-5">
-      <p className="text-sm text-gray-500">{title}</p>
-      <p className="mt-3 text-2xl font-semibold text-[#380712]">{value}</p>
+    <div className="flex items-center justify-between rounded-2xl border border-[#eadfdc] bg-white p-5 shadow-sm">
+      <div>
+        <p className="text-sm text-gray-500">{title}</p>
+        <p className="mt-2 text-2xl font-semibold text-[#380712]">{value}</p>
+      </div>
+      {Icon && (
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FAF7F2] text-[#9A6B35]">
+          <Icon size={22} />
+        </div>
+      )}
     </div>
   );
 }

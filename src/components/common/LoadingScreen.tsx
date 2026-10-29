@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
 
 type LoadingScreenProps = {
   /** Message to display beneath the logo */
@@ -99,18 +100,10 @@ export default function LoadingScreen({
 
       {/* Floating golden sparkle stars */}
       <div className="pointer-events-none absolute inset-0 select-none overflow-hidden">
-        <span className="absolute left-[18%] top-[25%] text-sm text-[#D4AF69] animate-sparkle-1">
-          ✦
-        </span>
-        <span className="absolute right-[22%] top-[28%] text-xs text-[#F5DFC0] animate-sparkle-2">
-          ✧
-        </span>
-        <span className="absolute bottom-[30%] left-[24%] text-xs text-[#D4AF69] animate-sparkle-3">
-          ✧
-        </span>
-        <span className="absolute bottom-[26%] right-[20%] text-sm text-[#D4AF69] animate-sparkle-1">
-          ✦
-        </span>
+        <Sparkles size={16} className="absolute left-[18%] top-[25%] text-[#D4AF69] animate-sparkle-1" />
+        <Sparkles size={13} className="absolute right-[22%] top-[28%] text-[#F5DFC0] animate-sparkle-2" />
+        <Sparkles size={12} className="absolute bottom-[30%] left-[24%] text-[#D4AF69] animate-sparkle-3" />
+        <Sparkles size={16} className="absolute bottom-[26%] right-[20%] text-[#D4AF69] animate-sparkle-1" />
       </div>
 
       {/* Main loading content card */}
@@ -196,7 +189,7 @@ export default function LoadingScreen({
         {/* Tagline & dynamic phrase */}
         <div className="mt-8 flex flex-col items-center">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#D4AF69]">✦</span>
+            <Sparkles size={11} className="text-[#D4AF69]" />
             <span
               className={`text-[11px] font-semibold uppercase tracking-[0.3em] transition-opacity duration-500 sm:text-xs ${
                 isMaroon ? "text-[#F5DFC0]" : "text-[#9A6B35]"
@@ -204,7 +197,7 @@ export default function LoadingScreen({
             >
               {message || PHRASES[phraseIndex]}
             </span>
-            <span className="text-xs text-[#D4AF69]">✦</span>
+            <Sparkles size={11} className="text-[#D4AF69]" />
           </div>
 
           <p

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Bricolage_Grotesque } from "next/font/google";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { Instagram } from "@/components/common/BrandIcons";
 
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -14,7 +15,6 @@ const bricolage = Bricolage_Grotesque({
 const instagramUrl = "https://www.instagram.com/mydhilicollections2010/";
 const handle = "@mydhilicollections2010";
 
-// Best results: use your own Instagram photos, e.g. "/instagram/1.jpg"
 const instagramImages = [
   {
     src: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=85",
@@ -37,26 +37,6 @@ const instagramImages = [
     label: "Made to be admired",
   },
 ];
-
-function InstagramGlyph({ size = 20 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
-    </svg>
-  );
-}
 
 export default function InstagramSection() {
   const [broken, setBroken] = useState<string[]>([]);
@@ -94,7 +74,7 @@ export default function InstagramSection() {
             className="group inline-flex w-fit items-center gap-3 rounded-full border border-[#380712]/20 py-2 pl-2 pr-5 text-sm font-medium text-[#380712] transition-all duration-300 hover:border-[#380712] hover:bg-[#380712] hover:text-white"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#380712] text-[#E6C47A] transition-colors duration-300 group-hover:bg-[#D4AF69] group-hover:text-[#380712]">
-              <InstagramGlyph size={19} />
+              <Instagram size={19} />
             </span>
             <span>{handle}</span>
             <ArrowUpRight
@@ -142,7 +122,7 @@ export default function InstagramSection() {
                 {/* Top: instagram chip */}
                 <div className="absolute inset-x-0 top-0 flex justify-end p-3.5 sm:p-4">
                   <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white backdrop-blur-md transition-colors duration-300 group-hover:border-[#E6C47A] group-hover:bg-[#D4AF69] group-hover:text-[#380712]">
-                    <InstagramGlyph size={18} />
+                    <Instagram size={18} />
                   </span>
                 </div>
 

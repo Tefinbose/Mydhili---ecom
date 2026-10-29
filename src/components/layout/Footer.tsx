@@ -7,6 +7,7 @@ import {
   MapPin,
   Phone,
 } from "lucide-react";
+import { Instagram } from "@/components/common/BrandIcons";
 import CurrentYear from "@/components/layout/CurrentYear";
 
 const quickLinks = [
@@ -24,26 +25,6 @@ const categories = [
   { label: "Blouses", href: "/categories/blouses" },
   { label: "Accessories", href: "/categories/accessories" },
 ];
-
-function InstagramIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="18"
-      height="18"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" />
-    </svg>
-  );
-}
 
 export default function Footer() {
   return (
@@ -109,7 +90,7 @@ export default function Footer() {
               aria-label="Instagram"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 transition hover:border-[#D4AF69] hover:text-[#D4AF69]"
             >
-              <InstagramIcon />
+              <Instagram size={18} />
             </Link>
 
             <Link
@@ -196,8 +177,7 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-6 text-xs text-white/50 sm:px-8 md:flex-row md:items-center md:justify-between">
           <p>
-           © <CurrentYear /> Mydhili Collections. All rights reserved.
-            reserved.
+            © <CurrentYear /> Mydhili Collections. All rights reserved.
           </p>
 
           <div className="flex flex-wrap gap-x-6 gap-y-3">

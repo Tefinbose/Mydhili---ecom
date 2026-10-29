@@ -3,6 +3,15 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Banknote,
+  CreditCard,
+  Lock,
+  ShieldCheck,
+  AlertCircle,
+  ShoppingBag,
+  ArrowRight,
+} from "lucide-react";
 
 type CartItem = {
   productId: string;
@@ -167,7 +176,10 @@ export default function CheckoutForm() {
 
   if (!cart.length) {
     return (
-      <div className="rounded-2xl border border-[#eadfdc] bg-white p-8 text-center">
+      <div className="rounded-2xl border border-[#eadfdc] bg-white p-8 text-center sm:p-12">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#FAF7F2] text-[#9A6B35]">
+          <ShoppingBag size={32} />
+        </div>
         <h2 className="text-xl font-semibold text-[#380712]">
           Your cart is empty
         </h2>
@@ -177,9 +189,10 @@ export default function CheckoutForm() {
         <button
           type="button"
           onClick={() => router.push("/shop")}
-          className="mt-6 rounded-full bg-[#380712] px-6 py-3 text-sm font-semibold text-white"
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#380712] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#520A1A]"
         >
-          Continue shopping
+          <span>Continue shopping</span>
+          <ArrowRight size={16} />
         </button>
       </div>
     );
@@ -288,7 +301,7 @@ export default function CheckoutForm() {
           </h2>
 
           <div className="mt-5 space-y-3">
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#eadfdc] p-4">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#eadfdc] p-4 transition hover:border-[#D4AF69]">
               <input
                 type="radio"
                 name="paymentMethod"
@@ -297,17 +310,18 @@ export default function CheckoutForm() {
                 onChange={() => setPaymentMethod("cod")}
                 className="mt-1 accent-[#380712]"
               />
+              <Banknote className="mt-0.5 shrink-0 text-[#9A6B35]" size={20} />
               <span>
                 <span className="block font-medium text-[#380712]">
                   Cash on Delivery
                 </span>
                 <span className="mt-1 block text-sm text-gray-500">
-                  Pay when your order arrives.
+                  Pay with cash or UPI when your order arrives.
                 </span>
               </span>
             </label>
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#eadfdc] p-4">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#eadfdc] p-4 transition hover:border-[#D4AF69]">
               <input
                 type="radio"
                 name="paymentMethod"
@@ -316,12 +330,13 @@ export default function CheckoutForm() {
                 onChange={() => setPaymentMethod("razorpay")}
                 className="mt-1 accent-[#380712]"
               />
+              <CreditCard className="mt-0.5 shrink-0 text-[#9A6B35]" size={20} />
               <span>
                 <span className="block font-medium text-[#380712]">
                   Online Payment
                 </span>
                 <span className="mt-1 block text-sm text-gray-500">
-                  Razorpay integration will be connected in the next step.
+                  Pay securely with UPI, Cards, NetBanking, or Wallets via Razorpay.
                 </span>
               </span>
             </label>
@@ -374,28 +389,33 @@ export default function CheckoutForm() {
         </div>
 
         {error && (
-          <p
+          <div
             role="alert"
-            className="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+            className="mt-5 flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700"
           >
-            {error}
-          </p>
+            <AlertCircle size={18} className="shrink-0" />
+            <span>{error}</span>
+          </div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="mt-6 w-full rounded-full bg-[#380712] px-6 py-4 text-sm font-semibold text-white transition hover:bg-[#541321] disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[#380712] px-6 py-4 text-sm font-semibold text-white transition hover:bg-[#541321] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading
-            ? "Processing..."
-            : paymentMethod === "cod"
-              ? "Place order"
-              : "Continue to online payment"}
+          <Lock size={15} />
+          <span>
+            {loading
+              ? "Processing..."
+              : paymentMethod === "cod"
+                ? "Place order"
+                : "Continue to online payment"}
+          </span>
         </button>
 
-        <p className="mt-4 text-center text-xs text-gray-500">
-          Your order details will be processed securely.
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-gray-500">
+          <ShieldCheck size={14} className="text-[#9A6B35]" />
+          <span>Your order details will be processed securely.</span>
         </p>
       </aside>
     </form>
