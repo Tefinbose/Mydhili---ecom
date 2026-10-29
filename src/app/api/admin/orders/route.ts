@@ -1,11 +1,8 @@
 
-import { NextRequest, NextResponse } from "next/server";
-
-import {connectToDatabase} from "@/lib/mongodb";
-import { getAdminSession } from "@/lib/mongodb";
+import { connection, NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import { getAdminSession } from "@/lib/auth";
 import Order from "@/models/Order";
-
-export const runtime = "nodejs";
 
 const allowedStatuses = [
   "PENDING",
@@ -17,130 +14,123 @@ const allowedStatuses = [
 ];
 
 export async function GET(request: NextRequest) {
+  // This endpoint depends on the incoming request and its cookies.
+  await connection();
+
   try {
-    // Require an authenticated admin.
     const adminSession = await getAdminSession();
 
     if (!adminSession) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized access." },
+        { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
 
     await connectToDatabase();
 
-    const searchParams = request.nextUrl.searchParams;
-    const requestedPage = Number(searchParams.get("page") ?? "1");
-    const requestedLimit = Number(searchParams.get("limit") ?? "10");
-    const status = searchParams.get("status");
-    const search = searchParams.get("search")?.trim() ?? "";
+    const { searchParams } = new URL(request.url);
 
-    const page =
-      Number.isFinite(requestedPage) && requestedPage > 0
-        ? Math.floor(requestedPage)
-        : 1;
+    const page = Math.max(
+      1,
+      Number.parseInt(searchParams.get("page") || "1", 10) || 1
+    );
 
-    const limit =
-      Number.isFinite(requestedLimit) && requestedLimit > 0
-        ? Math.min(Math.floor(requestedLimit), 50)
-        : 10;
+    const limit = Math.min(
+      100,
+      Math.max(
+        1,
+        Number.parseInt(searchParams.get("limit") || "10", 10) || 10
+      )
+    );
+
+    const search = (searchParams.get("search") || "").trim();
+    const status = (searchParams.get("status") || "").toUpperCase();
 
     const filter: Record<string, unknown> = {};
 
     if (status && status !== "ALL") {
       if (!allowedStatuses.includes(status)) {
         return NextResponse.json(
-          { success: false, message: "Invalid order status." },
+          { success: false, message: "Invalid order status" },
           { status: 400 }
         );
       }
 
-      filter.orderStatus = status;
+      filter.status = status;
     }
 
     if (search) {
-      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const searchRegex = new RegExp(escapedSearch, "i");
+      // Escape regex characters so search text is treated literally.
+      const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const searchRegex = new RegExp(safeSearch, "i");
 
       filter.$or = [
         { orderNumber: searchRegex },
-        { "customer.fullName": searchRegex },
+        { "customer.name": searchRegex },
         { "customer.email": searchRegex },
-        { "customer.phone": searchRegex },
+        { "shippingAddress.name": searchRegex },
+        { "shippingAddress.email": searchRegex },
       ];
     }
 
-    const [orders, total, summary] = await Promise.all([
-      Order.find(filter)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean(),
+    const skip = (page - 1) * limit;
 
-      Order.countDocuments(filter),
+    const [orders, totalOrders, pendingOrders, paidOrders, codOrders] =
+      await Promise.all([
+        Order.find(filter)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
 
-      Order.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalOrders: { $sum: 1 },
-            totalRevenue: {
-              $sum: {
-                $cond: [
-                  { $eq: ["$paymentStatus", "PAID"] },
-                  "$total",
-                  0,
-                ],
-              },
-            },
-            pendingOrders: {
-              $sum: {
-                $cond: [
-                  { $eq: ["$orderStatus", "PENDING"] },
-                  1,
-                  0,
-                ],
-              },
-            },
-            codOrders: {
-              $sum: {
-                $cond: [
-                  { $eq: ["$paymentMethod", "COD"] },
-                  1,
-                  0,
-                ],
-              },
-            },
+        Order.countDocuments(filter),
+
+        Order.countDocuments({ status: "PENDING" }),
+
+        Order.find({ paymentStatus: "PAID" })
+          .select("totalAmount total")
+          .lean(),
+
+        Order.countDocuments({
+          paymentMethod: {
+            $in: ["COD", "CASH_ON_DELIVERY", "Cash on Delivery"],
           },
-        },
-      ]),
-    ]);
+        }),
+      ]);
+
+    const revenue = paidOrders.reduce((sum, order) => {
+      const amount =
+        typeof order.totalAmount === "number"
+          ? order.totalAmount
+          : typeof order.total === "number"
+            ? order.total
+            : 0;
+
+      return sum + amount;
+    }, 0);
 
     return NextResponse.json({
       success: true,
-      orders: orders.map((order) => ({
-        ...order,
-        _id: String(order._id),
-      })),
+      orders,
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        totalOrders,
+        totalPages: Math.ceil(totalOrders / limit),
       },
-      summary: summary[0] ?? {
-        totalOrders: 0,
-        totalRevenue: 0,
-        pendingOrders: 0,
-        codOrders: 0,
+      summary: {
+        totalOrders: await Order.countDocuments(),
+        pendingOrders,
+        revenue,
+        codOrders,
       },
     });
   } catch (error) {
     console.error("Admin orders API error:", error);
 
     return NextResponse.json(
-      { success: false, message: "Unable to load orders." },
+      { success: false, message: "Failed to fetch orders" },
       { status: 500 }
     );
   }
