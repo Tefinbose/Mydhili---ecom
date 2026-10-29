@@ -7,6 +7,7 @@ import PromoBanner from "@/components/home/PromoBanner";
 import InstagramSection from "@/components/home/InstagramSection";
 import NewsletterSection from "@/components/home/NewsletterSection";
 import ShippingReturnsFAQ from "@/components/home/ShippingReturnsFAQ";
+import FashionFilmsSection from "@/components/home/FashionFilmsSection";
 
 export default function HomePage() {
   return (
@@ -17,6 +18,7 @@ export default function HomePage() {
       <WhyChooseUs />
       <PromoBanner />
       <InstagramSection />
+      <FashionFilmsSection />
       <NewsletterSection />
       <ShippingReturnsFAQ />
     </div>
