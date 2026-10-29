@@ -22,9 +22,9 @@ export const metadata: Metadata = {
     "Indian boutique",
   ],
   icons: {
-    icon: "/logo/logo1.jpeg",
-    shortcut: "/logo/logo1.jpeg",
-    apple: "/logo/logo1.jpeg",
+    icon: "/logo/logo.png",
+    shortcut: "/logo/logo.png",
+    apple: "/logo/logo.png",
   },
   openGraph: {
     title: "Mydhili Collections",
@@ -35,9 +35,9 @@ export const metadata: Metadata = {
     siteName: "Mydhili Collections",
     images: [
       {
-        url: "/logo/logo1.jpeg",
-        width: 818,
-        height: 834,
+        url: "/logo/logo.png",
+        width: 759,
+        height: 566,
         alt: "Mydhili Boutique Logo",
       },
     ],

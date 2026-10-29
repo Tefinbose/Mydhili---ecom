@@ -159,7 +159,7 @@ export default function AdminOrdersPage() {
           <div className="flex items-center gap-3.5">
             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-[#D4AF69]/60 shadow-sm">
               <Image
-                src="/logo/logo1.jpeg"
+                src="/logo/logo.png"
                 alt="Mydhili Boutique"
                 fill
                 sizes="48px"

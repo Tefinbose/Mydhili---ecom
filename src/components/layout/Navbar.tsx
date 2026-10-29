@@ -62,8 +62,18 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    let ticking = false;
+
     function handleScroll() {
-      setScrolled(window.scrollY > 20);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const y = window.scrollY;
+          // Hysteresis prevents oscillation / vibration at scroll threshold
+          setScrolled((prev) => (y > 45 ? true : y < 15 ? false : prev));
+          ticking = false;
+        });
+        ticking = true;
+      }
     }
 
     handleScroll();
@@ -97,108 +107,78 @@ export default function Navbar() {
     "flex h-9 w-9 items-center justify-center rounded-full text-[#380712] transition-colors duration-300 hover:bg-[#380712]/[0.06] hover:text-[#9A6B35]";
 
   return (
-    <header
-      className={`sticky top-0 z-50 bg-[#FAF7F2]/95 text-[#380712] backdrop-blur-md transition-shadow duration-300 ${
-        scrolled ? "shadow-[0_6px_24px_rgba(56,7,18,0.08)]" : ""
-      }`}
-    >
-      {/* Slim announcement strip — collapses on scroll */}
-      <div
-        className={`overflow-hidden bg-[#380712] text-center text-[9px] font-medium uppercase tracking-[0.2em] text-[#F5DFC0] transition-all duration-300 sm:text-[10px] sm:tracking-[0.24em] ${
-          scrolled ? "max-h-0 py-0 opacity-0" : "max-h-8 py-1.5 opacity-100"
-        }`}
-      >
+    <>
+      {/* Top Announcement Strip — in natural page flow so scrolling never collapses layout height or vibrates */}
+      <div className="bg-[#380712] py-2 text-center text-[10px] font-medium uppercase tracking-[0.22em] text-[#F5DFC0] sm:text-[11px] sm:tracking-[0.25em]">
         <span className="text-[#D4AF69]">✦</span>
         <span className="mx-2">A little tradition, a lot of elegance</span>
         <span className="text-[#D4AF69]">✦</span>
       </div>
 
-      {/* Single-row header */}
-      <div
-        className={`mx-auto grid max-w-[1440px] grid-cols-[auto_1fr_auto] items-center gap-4 px-4 transition-all duration-300 sm:px-6 lg:px-10 ${
-          scrolled ? "h-14" : "h-16"
+      <header
+        className={`sticky top-0 z-50 bg-[#FAF7F2]/95 text-[#380712] backdrop-blur-md transition-shadow duration-300 ${
+          scrolled ? "shadow-[0_8px_30px_rgba(56,7,18,0.08)] bg-[#FAF7F2]/98" : ""
         }`}
       >
-        {/* Left: logo (desktop) / menu button (mobile) */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((open) => !open)}
-            className={`${iconBtnClass} -ml-2 lg:hidden`}
-            aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-navigation"
-          >
-            {menuOpen ? (
-              <X size={20} strokeWidth={1.5} />
-            ) : (
-              <Menu size={20} strokeWidth={1.5} />
-            )}
-          </button>
+        {/* Header container */}
+        <div className="relative mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:h-20 sm:px-6 lg:px-10">
+          {/* Left: Mobile hamburger menu / Desktop Logo */}
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              className={`${iconBtnClass} -ml-2 lg:hidden`}
+              aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-navigation"
+            >
+              {menuOpen ? (
+                <X size={20} strokeWidth={1.5} />
+              ) : (
+                <Menu size={20} strokeWidth={1.5} />
+              )}
+            </button>
 
-          <Link
-            href="/"
-            onClick={closeMenus}
-            className="group hidden shrink-0 items-center gap-3 lg:flex"
-            aria-label="Mydhili Boutique home"
-          >
-            <div
-              className={`relative shrink-0 overflow-hidden rounded-full border border-[#D4AF69]/60 shadow-sm transition-all duration-300 group-hover:border-[#D4AF69] group-hover:scale-105 ${
-                scrolled ? "h-9 w-9" : "h-11 w-11"
-              }`}
+            {/* Desktop Brand Logo (enlarged, transparent, properly aligned) */}
+            <Link
+              href="/"
+              onClick={closeMenus}
+              className="group hidden shrink-0 items-center lg:flex"
+              aria-label="Mydhili Boutique home"
+            >
+              <div className="relative flex items-center transition-transform duration-300 group-hover:scale-105">
+                <Image
+                  src="/logo/logo.png"
+                  alt="Mydhili Boutique logo"
+                  width={759}
+                  height={566}
+                  priority
+                  className="h-12 w-auto object-contain xl:h-14"
+                />
+              </div>
+            </Link>
+          </div>
+
+          {/* Center: Mobile Logo (dead-centered horizontally on mobile) */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 lg:hidden">
+            <Link
+              href="/"
+              onClick={closeMenus}
+              className="group flex items-center justify-center"
+              aria-label="Mydhili Boutique home"
             >
               <Image
-                src="/logo/logo1.jpeg"
+                src="/logo/logo.png"
                 alt="Mydhili Boutique logo"
-                fill
-                sizes="(max-width: 768px) 36px, 44px"
-                className="object-cover"
+                width={759}
+                height={566}
                 priority
+                className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105 sm:h-11"
               />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-serif text-[22px] leading-none tracking-[0.02em] text-[#380712] transition-colors duration-300 group-hover:text-[#6D2636]">
-                Mydhili
-              </span>
-              <span className="mt-1 text-[8px] font-semibold uppercase tracking-[0.32em] text-[#9A6B35]">
-                Boutique
-              </span>
-            </div>
-          </Link>
-        </div>
+            </Link>
+          </div>
 
-        {/* Center: desktop nav / mobile logo */}
-        <div className="flex items-center justify-center">
-          <Link
-            href="/"
-            onClick={closeMenus}
-            className="group flex items-center gap-2.5 lg:hidden"
-            aria-label="Mydhili Boutique home"
-          >
-            <div
-              className={`relative shrink-0 overflow-hidden rounded-full border border-[#D4AF69]/60 shadow-sm transition-all duration-300 ${
-                scrolled ? "h-8 w-8" : "h-9 w-9"
-              }`}
-            >
-              <Image
-                src="/logo/logo1.jpeg"
-                alt="Mydhili Boutique logo"
-                fill
-                sizes="36px"
-                className="object-cover"
-                priority
-              />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="font-serif text-lg leading-none tracking-[0.02em] text-[#380712]">
-                Mydhili
-              </span>
-              <span className="mt-0.5 text-[7px] font-semibold uppercase tracking-[0.3em] text-[#9A6B35]">
-                Boutique
-              </span>
-            </div>
-          </Link>
-
+          {/* Center: Desktop Navigation */}
           <nav
             aria-label="Main navigation"
             className="hidden h-full items-stretch gap-8 lg:flex xl:gap-10"
@@ -299,9 +279,8 @@ export default function Navbar() {
               <ArrowUpRight size={12} />
             </Link>
           </nav>
-        </div>
 
-        {/* Right: icons */}
+          {/* Right: icons */}
         <div className="flex items-center justify-end gap-0.5">
           <Link href="/shop" aria-label="Search products" className={iconBtnClass}>
             <Search size={19} strokeWidth={1.5} />
@@ -340,20 +319,19 @@ export default function Navbar() {
         aria-hidden={!menuOpen}
       >
         <nav aria-label="Mobile navigation" className="px-5 pb-6 pt-3 sm:px-8">
-          <div className="mb-4 flex items-center gap-3 border-b border-[#380712]/[0.08] pb-4 pt-1">
-            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[#D4AF69]/60 shadow-sm">
+          <div className="mb-4 flex items-center justify-between border-b border-[#380712]/[0.08] pb-4 pt-1">
+            <Link href="/" onClick={closeMenus} className="flex items-center">
               <Image
-                src="/logo/logo1.jpeg"
+                src="/logo/logo.png"
                 alt="Mydhili Boutique logo"
-                fill
-                sizes="44px"
-                className="object-cover"
+                width={759}
+                height={566}
+                className="h-10 w-auto object-contain"
               />
-            </div>
-            <div>
-              <p className="font-serif text-lg leading-tight text-[#380712]">Mydhili Boutique</p>
-              <p className="text-[8px] font-medium uppercase tracking-[0.24em] text-[#9A6B35]">A little tradition, a lot of elegance</p>
-            </div>
+            </Link>
+            <p className="text-[8px] font-medium uppercase tracking-[0.24em] text-[#9A6B35]">
+              A little tradition, a lot of elegance
+            </p>
           </div>
 
           <p className="mb-1 px-1 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
@@ -421,5 +399,6 @@ export default function Navbar() {
         </nav>
       </div>
     </header>
+    </>
   );
 }

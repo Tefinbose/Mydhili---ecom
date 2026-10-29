@@ -58,7 +58,7 @@ function OrderSuccessContent() {
       <section className="rounded-3xl border border-[#eadfdc] bg-white p-8 text-center shadow-sm sm:p-12">
         <div className="relative mx-auto mb-4 h-16 w-16 overflow-hidden rounded-full border border-[#D4AF69]/60 shadow-md">
           <Image
-            src="/logo/logo1.jpeg"
+            src="/logo/logo.png"
             alt="Mydhili Boutique"
             fill
             sizes="64px"

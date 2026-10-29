@@ -79,11 +79,11 @@ export default function Footer() {
           <Link href="/" className="group inline-flex items-center gap-3.5">
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[#D4AF69]/40 bg-[#380712] shadow-md transition-transform duration-300 group-hover:scale-105">
               <Image
-                src="/logo/logo1.jpeg"
+                src="/logo/logo.png"
                 alt="Mydhili Boutique logo"
                 fill
                 sizes="56px"
-                className="object-cover"
+                className="object-contain p-1.5"
               />
             </div>
             <div>
