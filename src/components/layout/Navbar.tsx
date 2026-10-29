@@ -1,0 +1,425 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import {
+  Menu,
+  X,
+  Search,
+  Heart,
+  ShoppingBag,
+  UserRound,
+  ChevronDown,
+  ArrowUpRight,
+} from "lucide-react";
+
+type Category = {
+  _id: string;
+  name: string;
+  slug: string;
+};
+
+const mobileLinks = [
+  { label: "Home", href: "/" },
+  { label: "Shop All", href: "/shop" },
+  { label: "Our Story", href: "/about" },
+  { label: "Contact Us", href: "/contact" },
+  { label: "Wishlist", href: "/wishlist" },
+  { label: "My Account", href: "/account" },
+  { label: "Shopping Cart", href: "/cart" },
+];
+
+const INSTAGRAM_URL = "https://www.instagram.com/mydhilicollections2010/";
+
+export default function Navbar() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCategories() {
+      try {
+        const response = await fetch("/api/categories");
+        if (!response.ok) throw new Error("Unable to load categories");
+
+        const data = await response.json();
+        if (!cancelled && data.success && Array.isArray(data.categories)) {
+          setCategories(data.categories);
+        }
+      } catch (error) {
+        console.error("Navbar categories failed to load:", error);
+      }
+    }
+
+    loadCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleScroll() {
+      setScrolled(window.scrollY > 20);
+    }
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        setCategoryMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [menuOpen]);
+
+  const closeMenus = () => {
+    setMenuOpen(false);
+    setCategoryMenuOpen(false);
+  };
+
+  const navLinkClass =
+    "relative flex h-full items-center text-[11px] font-medium uppercase tracking-[0.16em] text-[#380712]/80 transition-colors duration-300 hover:text-[#9A6B35] after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-[#D4AF69] after:transition-all after:duration-300 hover:after:w-full";
+
+  const iconBtnClass =
+    "flex h-9 w-9 items-center justify-center rounded-full text-[#380712] transition-colors duration-300 hover:bg-[#380712]/[0.06] hover:text-[#9A6B35]";
+
+  return (
+    <header
+      className={`sticky top-0 z-50 bg-[#FAF7F2]/95 text-[#380712] backdrop-blur-md transition-shadow duration-300 ${
+        scrolled ? "shadow-[0_6px_24px_rgba(56,7,18,0.08)]" : ""
+      }`}
+    >
+      {/* Slim announcement strip — collapses on scroll */}
+      <div
+        className={`overflow-hidden bg-[#380712] text-center text-[9px] font-medium uppercase tracking-[0.2em] text-[#F5DFC0] transition-all duration-300 sm:text-[10px] sm:tracking-[0.24em] ${
+          scrolled ? "max-h-0 py-0 opacity-0" : "max-h-8 py-1.5 opacity-100"
+        }`}
+      >
+        <span className="text-[#D4AF69]">✦</span>
+        <span className="mx-2">A little tradition, a lot of elegance</span>
+        <span className="text-[#D4AF69]">✦</span>
+      </div>
+
+      {/* Single-row header */}
+      <div
+        className={`mx-auto grid max-w-[1440px] grid-cols-[auto_1fr_auto] items-center gap-4 px-4 transition-all duration-300 sm:px-6 lg:px-10 ${
+          scrolled ? "h-14" : "h-16"
+        }`}
+      >
+        {/* Left: logo (desktop) / menu button (mobile) */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            className={`${iconBtnClass} -ml-2 lg:hidden`}
+            aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-navigation"
+          >
+            {menuOpen ? (
+              <X size={20} strokeWidth={1.5} />
+            ) : (
+              <Menu size={20} strokeWidth={1.5} />
+            )}
+          </button>
+
+          <Link
+            href="/"
+            onClick={closeMenus}
+            className="group hidden shrink-0 items-center gap-3 lg:flex"
+            aria-label="Mydhili Boutique home"
+          >
+            <div
+              className={`relative shrink-0 overflow-hidden rounded-full border border-[#D4AF69]/60 shadow-sm transition-all duration-300 group-hover:border-[#D4AF69] group-hover:scale-105 ${
+                scrolled ? "h-9 w-9" : "h-11 w-11"
+              }`}
+            >
+              <Image
+                src="/logo/logo1.jpeg"
+                alt="Mydhili Boutique logo"
+                fill
+                sizes="(max-width: 768px) 36px, 44px"
+                className="object-cover"
+                priority
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-serif text-[22px] leading-none tracking-[0.02em] text-[#380712] transition-colors duration-300 group-hover:text-[#6D2636]">
+                Mydhili
+              </span>
+              <span className="mt-1 text-[8px] font-semibold uppercase tracking-[0.32em] text-[#9A6B35]">
+                Boutique
+              </span>
+            </div>
+          </Link>
+        </div>
+
+        {/* Center: desktop nav / mobile logo */}
+        <div className="flex items-center justify-center">
+          <Link
+            href="/"
+            onClick={closeMenus}
+            className="group flex items-center gap-2.5 lg:hidden"
+            aria-label="Mydhili Boutique home"
+          >
+            <div
+              className={`relative shrink-0 overflow-hidden rounded-full border border-[#D4AF69]/60 shadow-sm transition-all duration-300 ${
+                scrolled ? "h-8 w-8" : "h-9 w-9"
+              }`}
+            >
+              <Image
+                src="/logo/logo1.jpeg"
+                alt="Mydhili Boutique logo"
+                fill
+                sizes="36px"
+                className="object-cover"
+                priority
+              />
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="font-serif text-lg leading-none tracking-[0.02em] text-[#380712]">
+                Mydhili
+              </span>
+              <span className="mt-0.5 text-[7px] font-semibold uppercase tracking-[0.3em] text-[#9A6B35]">
+                Boutique
+              </span>
+            </div>
+          </Link>
+
+          <nav
+            aria-label="Main navigation"
+            className="hidden h-full items-stretch gap-8 lg:flex xl:gap-10"
+          >
+            <Link href="/shop" className={navLinkClass}>
+              Shop All
+            </Link>
+
+            <div
+              className="group relative flex items-stretch"
+              onMouseEnter={() => setCategoryMenuOpen(true)}
+              onMouseLeave={() => setCategoryMenuOpen(false)}
+            >
+              <button
+                type="button"
+                onClick={() => setCategoryMenuOpen((open) => !open)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setCategoryMenuOpen(false);
+                }}
+                className={`${navLinkClass} gap-1.5`}
+                aria-expanded={categoryMenuOpen}
+                aria-haspopup="true"
+              >
+                Categories
+                <ChevronDown
+                  size={12}
+                  className={`transition-transform duration-300 ${
+                    categoryMenuOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              <div
+                className={`absolute left-1/2 top-full z-50 w-72 -translate-x-1/2 transition-all duration-200 ${
+                  categoryMenuOpen
+                    ? "visible translate-y-0 opacity-100"
+                    : "invisible -translate-y-1 opacity-0 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
+                }`}
+              >
+                <div className="mt-px border border-[#D4AF69]/30 bg-white p-2 shadow-[0_15px_40px_rgba(56,7,18,0.12)]">
+                  <div className="border-b border-[#380712]/10 px-4 py-3">
+                    <p className="font-serif text-lg text-[#380712]">
+                      Find your style
+                    </p>
+                    <p className="mt-0.5 text-[10px] uppercase tracking-[0.18em] text-[#9A6B35]">
+                      Explore the collection
+                    </p>
+                  </div>
+
+                  {categories.length > 0 ? (
+                    <div className="max-h-[50vh] overflow-y-auto py-1">
+                      {categories.map((category) => (
+                        <Link
+                          key={category._id}
+                          href={`/categories/${category.slug}`}
+                          onClick={closeMenus}
+                          className="group/item flex items-center justify-between px-4 py-2.5 text-sm text-stone-700 transition hover:bg-[#FAF7F2] hover:text-[#9A6B35]"
+                        >
+                          {category.name}
+                          <ArrowUpRight
+                            size={14}
+                            className="text-[#9A6B35] opacity-0 transition group-hover/item:opacity-100"
+                          />
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="px-4 py-4 text-sm text-stone-500">
+                      Explore all our categories on the shop page.
+                    </p>
+                  )}
+
+                  <Link
+                    href="/shop"
+                    onClick={closeMenus}
+                    className="flex items-center justify-between border-t border-[#380712]/10 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.17em] text-[#380712] transition hover:text-[#9A6B35]"
+                  >
+                    View All Products
+                    <ArrowUpRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            <Link href="/about" className={navLinkClass}>
+              Our Story
+            </Link>
+            <Link href="/contact" className={navLinkClass}>
+              Contact
+            </Link>
+            <Link
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${navLinkClass} gap-1`}
+            >
+              Instagram
+              <ArrowUpRight size={12} />
+            </Link>
+          </nav>
+        </div>
+
+        {/* Right: icons */}
+        <div className="flex items-center justify-end gap-0.5">
+          <Link href="/shop" aria-label="Search products" className={iconBtnClass}>
+            <Search size={19} strokeWidth={1.5} />
+          </Link>
+          <Link
+            href="/wishlist"
+            aria-label="Wishlist"
+            className={`${iconBtnClass} hidden sm:flex`}
+          >
+            <Heart size={19} strokeWidth={1.5} />
+          </Link>
+          <Link
+            href="/account"
+            aria-label="My account"
+            className={`${iconBtnClass} hidden lg:flex`}
+          >
+            <UserRound size={19} strokeWidth={1.5} />
+          </Link>
+          <Link href="/cart" aria-label="Shopping cart" className={iconBtnClass}>
+            <ShoppingBag size={19} strokeWidth={1.5} />
+          </Link>
+        </div>
+      </div>
+
+      {/* Gold hairline */}
+      <div className="h-px bg-gradient-to-r from-transparent via-[#D4AF69]/50 to-transparent" />
+
+      {/* Mobile navigation */}
+      <div
+        id="mobile-navigation"
+        className={`absolute left-0 right-0 top-full z-50 overflow-hidden border-t border-[#D4AF69]/30 bg-[#FAF7F2] shadow-[0_20px_35px_rgba(56,7,18,0.12)] transition-all duration-300 ease-in-out lg:hidden ${
+          menuOpen
+            ? "visible max-h-[80vh] overflow-y-auto opacity-100"
+            : "invisible max-h-0 opacity-0"
+        }`}
+        aria-hidden={!menuOpen}
+      >
+        <nav aria-label="Mobile navigation" className="px-5 pb-6 pt-3 sm:px-8">
+          <div className="mb-4 flex items-center gap-3 border-b border-[#380712]/[0.08] pb-4 pt-1">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[#D4AF69]/60 shadow-sm">
+              <Image
+                src="/logo/logo1.jpeg"
+                alt="Mydhili Boutique logo"
+                fill
+                sizes="44px"
+                className="object-cover"
+              />
+            </div>
+            <div>
+              <p className="font-serif text-lg leading-tight text-[#380712]">Mydhili Boutique</p>
+              <p className="text-[8px] font-medium uppercase tracking-[0.24em] text-[#9A6B35]">A little tradition, a lot of elegance</p>
+            </div>
+          </div>
+
+          <p className="mb-1 px-1 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
+            Explore Mydhili
+          </p>
+
+          {mobileLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={closeMenus}
+              tabIndex={menuOpen ? 0 : -1}
+              className="group flex items-center justify-between border-b border-[#380712]/[0.08] py-3 text-sm text-[#380712] transition hover:pl-2 hover:text-[#9A6B35]"
+            >
+              <span>{item.label}</span>
+              <ArrowUpRight
+                size={15}
+                className="text-[#9A6B35] opacity-0 transition group-hover:opacity-100"
+              />
+            </Link>
+          ))}
+
+          <div className="border-b border-[#380712]/[0.08] py-4">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9A6B35]">
+              Shop by Category
+            </p>
+
+            {categories.length > 0 ? (
+              <div className="grid grid-cols-2 gap-x-5">
+                {categories.map((category) => (
+                  <Link
+                    key={category._id}
+                    href={`/categories/${category.slug}`}
+                    onClick={closeMenus}
+                    tabIndex={menuOpen ? 0 : -1}
+                    className="py-2 text-sm text-stone-600 transition hover:text-[#9A6B35]"
+                  >
+                    {category.name}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <Link
+                href="/shop"
+                onClick={closeMenus}
+                tabIndex={menuOpen ? 0 : -1}
+                className="text-sm text-stone-600 hover:text-[#9A6B35]"
+              >
+                Browse all products
+              </Link>
+            )}
+          </div>
+
+          <Link
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={closeMenus}
+            tabIndex={menuOpen ? 0 : -1}
+            className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-[#380712] transition hover:text-[#9A6B35]"
+          >
+            Follow us on Instagram
+            <ArrowUpRight size={15} />
+          </Link>
+        </nav>
+      </div>
+    </header>
+  );
+}

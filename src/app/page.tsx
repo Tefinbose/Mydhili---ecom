@@ -1,0 +1,24 @@
+
+import HeroSection from "@/components/home/HeroSection";
+import CategorySection from "@/components/home/CategorySection";
+import FeaturedProducts from "@/components/home/FeaturedProducts";
+import WhyChooseUs from "@/components/home/WhyChooseUs";
+import PromoBanner from "@/components/home/PromoBanner";
+import InstagramSection from "@/components/home/InstagramSection";
+import NewsletterSection from "@/components/home/NewsletterSection";
+import ShippingReturnsFAQ from "@/components/home/ShippingReturnsFAQ";
+
+export default function HomePage() {
+  return (
+    <div className="flex flex-col">
+      <HeroSection />
+      <CategorySection />
+      <FeaturedProducts />
+      <WhyChooseUs />
+      <PromoBanner />
+      <InstagramSection />
+      <NewsletterSection />
+      <ShippingReturnsFAQ />
+    </div>
+  );
+}

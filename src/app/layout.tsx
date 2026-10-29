@@ -1,0 +1,63 @@
+
+import type { Metadata } from "next";
+import "./globals.css";
+
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Mydhili Collections | Elegant Fashion for Every Occasion",
+    template: "%s | Mydhili Collections",
+  },
+  description:
+    "Discover elegant sarees, kurtis, ethnic wear, dresses, blouses, and accessories at Mydhili Collections. Celebrate tradition with modern style.",
+  keywords: [
+    "Mydhili Collections",
+    "Indian ethnic wear",
+    "sarees",
+    "kurtis",
+    "women's fashion",
+    "ethnic dresses",
+    "Indian boutique",
+  ],
+  icons: {
+    icon: "/logo/logo1.jpeg",
+    shortcut: "/logo/logo1.jpeg",
+    apple: "/logo/logo1.jpeg",
+  },
+  openGraph: {
+    title: "Mydhili Collections",
+    description:
+      "Explore timeless ethnic wear and contemporary fashion for every occasion.",
+    type: "website",
+    locale: "en_IN",
+    siteName: "Mydhili Collections",
+    images: [
+      {
+        url: "/logo/logo1.jpeg",
+        width: 818,
+        height: 834,
+        alt: "Mydhili Boutique Logo",
+      },
+    ],
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body className="min-h-screen bg-[#FAF7F2] text-stone-900 antialiased">
+        <Navbar />
+
+        <main className="min-h-screen">{children}</main>
+
+        <Footer />
+      </body>
+    </html>
+  );
+}
