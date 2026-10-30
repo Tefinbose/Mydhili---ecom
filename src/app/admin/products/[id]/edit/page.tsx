@@ -10,7 +10,9 @@ import {
   Plus,
   Save,
   Trash2,
+  ImagePlus,
 } from "lucide-react";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 type Variant = {
   sku: string;
@@ -55,6 +57,7 @@ export default function EditProductPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [images, setImages] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -120,6 +123,8 @@ export default function EditProductPage() {
         isFeatured: Boolean(product.isFeatured),
         isActive: product.isActive !== false,
       });
+
+      setImages(product.images || []);
 
       if (categoriesResponse.ok && categoriesData.success) {
         setCategories(categoriesData.categories || []);
@@ -218,10 +223,7 @@ export default function EditProductPage() {
           compareAtPrice: form.compareAtPrice
             ? Number(form.compareAtPrice)
             : undefined,
-          images: form.images
-            .split("\n")
-            .map((image) => image.trim())
-            .filter(Boolean),
+          images: images.filter(Boolean),
           variants: variants.map((variant) => ({
             ...variant,
             stock: Number(variant.stock),
@@ -400,19 +402,25 @@ export default function EditProductPage() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-2 text-lg font-semibold text-[#380712]">
-              Product Images
-            </h2>
-            <p className="mb-4 text-sm text-stone-500">
-              Add one image URL per line.
-            </p>
-            <textarea
-              rows={5}
-              value={form.images}
-              onChange={(e) => updateField("images", e.target.value)}
-              placeholder={"https://example.com/product-image.jpg"}
-              className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
+          <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
+            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="font-serif text-xl font-bold text-[#380712]">
+                  Gallery Images
+                </h2>
+                <p className="mt-0.5 text-xs text-stone-500">
+                  Upload images from your computer or paste image links. First image becomes the primary cover.
+                </p>
+              </div>
+              <ImagePlus size={22} className="text-[#9A6B35]" />
+            </div>
+
+            <ImageUpload
+              multiple
+              value={images}
+              onChange={(newImages) => setImages(newImages as string[])}
+              label="Product Photography"
+              helperText="Upload angles, close-ups, and fabric texture shots directly from your device."
             />
           </section>
 

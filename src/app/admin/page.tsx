@@ -136,45 +136,47 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Hero Banner with Boutique Royal Aesthetics */}
-        <section className="relative overflow-hidden rounded-3xl bg-[#380712] p-8 text-white shadow-xl sm:p-10">
-          <div className="pointer-events-none absolute -right-16 -top-24 h-80 w-80 rounded-full bg-[#D4AF69]/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-28 left-1/3 h-72 w-72 rounded-full bg-[#8B2635]/40 blur-3xl" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF69]/60 to-transparent" />
-
-          <div className="relative z-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
-            <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF69]/40 bg-white/10 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#E6C47A] backdrop-blur-sm">
-                <Sparkles size={12} className="text-[#D4AF69]" />
-                Mydhili Collections · Management
-              </div>
-
-              <h2 className="mt-4 font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl text-[#FAF7F2]">
-                Craftsmanship &amp; Heritage in Every Order.
-              </h2>
-              <p className="mt-3 text-sm font-light leading-relaxed text-white/75 sm:text-base">
-                Welcome to your command center. Monitor boutique orders, oversee product catalogs, update pricing, and delight your patrons.
-              </p>
+        {/* Operations Quick Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#EDE4D9] bg-white px-6 py-4 shadow-xs">
+          <div className="flex flex-wrap items-center gap-5 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              </span>
+              <span className="font-semibold text-stone-800">Store Status: Online</span>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/admin/orders"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#D4AF69] px-5 py-3 text-xs font-bold uppercase tracking-wider text-[#380712] shadow-md transition hover:bg-[#E8CD8A]"
-              >
-                <ShoppingBag size={15} />
-                Process Orders ({pendingOrders})
-              </Link>
+            <div className="h-4 w-px bg-stone-200 hidden sm:block" />
 
-              <Link
-                href="/admin/products"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-xs font-medium uppercase tracking-wider text-white backdrop-blur-sm transition hover:bg-white/20"
-              >
-                Catalog ({totalProducts})
-              </Link>
+            <div className="text-stone-600">
+              <span className="font-semibold text-[#380712]">{pendingOrders}</span> pending orders
+            </div>
+
+            <div className="h-4 w-px bg-stone-200 hidden md:block" />
+
+            <div className="text-stone-600 hidden md:block">
+              <span className="font-semibold text-[#380712]">{totalProducts}</span> active products
             </div>
           </div>
-        </section>
+
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/admin/orders"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#380712] px-4 py-2 text-xs font-semibold text-[#F5DFC0] transition hover:bg-[#520A1A]"
+            >
+              <ShoppingBag size={14} />
+              Process Orders ({pendingOrders})
+            </Link>
+
+            <Link
+              href="/admin/products"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-4 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-50 hover:text-stone-900"
+            >
+              Catalog ({totalProducts})
+            </Link>
+          </div>
+        </div>
 
         {/* 4 Luxury KPI Stat Cards */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

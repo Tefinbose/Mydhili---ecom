@@ -13,6 +13,7 @@ import {
   Sparkles,
   ExternalLink,
 } from "lucide-react";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 type Category = {
   _id: string;
@@ -315,69 +316,25 @@ export default function NewProductPage() {
 
           {/* Images Card */}
           <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <h2 className="font-serif text-xl font-bold text-[#380712]">
                   Gallery Images
                 </h2>
                 <p className="mt-0.5 text-xs text-stone-500">
-                  Add image URLs (relative paths like /products/... or full https:// links).
+                  Upload images from your computer or paste image links. First image becomes the primary cover.
                 </p>
               </div>
               <ImagePlus size={22} className="text-[#9A6B35]" />
             </div>
 
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <input
-                value={imageInput}
-                onChange={(e) => setImageInput(e.target.value)}
-                placeholder="Paste image URL (e.g. https://... or /products/saree.jpg)"
-                className="min-w-0 flex-1 rounded-xl border border-[#E9DFD2] px-4 py-3 text-sm text-[#380712] outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
-              />
-              <button
-                type="button"
-                onClick={addImage}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FAF3E8] px-5 py-3 text-sm font-semibold text-[#380712] transition hover:bg-[#D4AF69]"
-              >
-                <Plus size={16} />
-                Add Image
-              </button>
-            </div>
-
-            {images.length > 0 && (
-              <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                {images.map((image, index) => (
-                  <div
-                    key={`${image}-${index}`}
-                    className="group relative rounded-2xl border border-[#E9DFD2] p-1.5 shadow-xs transition hover:border-[#D4AF69]"
-                  >
-                    <div className="relative aspect-square overflow-hidden rounded-xl bg-[#FAF7F2]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={image}
-                        alt={`Product image ${index + 1}`}
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setImages((current) =>
-                          current.filter((_, i) => i !== index)
-                        )
-                      }
-                      aria-label={`Remove image ${index + 1}`}
-                      className="absolute right-3 top-3 rounded-full bg-white p-1.5 text-red-600 shadow-md transition hover:bg-red-50"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                    <p className="mt-1.5 truncate text-center text-[10px] font-medium uppercase tracking-wider text-stone-400">
-                      {index === 0 ? "★ Primary Cover" : `Angle ${index + 1}`}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ImageUpload
+              multiple
+              value={images}
+              onChange={(newImages) => setImages(newImages as string[])}
+              label="Product Photography"
+              helperText="Upload angles, close-ups, and fabric texture shots directly from your device."
+            />
           </section>
 
           {/* Variants Card */}

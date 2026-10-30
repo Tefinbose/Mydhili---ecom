@@ -14,6 +14,7 @@ import {
   Sparkles,
   ExternalLink,
 } from "lucide-react";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 type Category = {
   _id: string;
@@ -466,17 +467,13 @@ export default function AdminCategoriesPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#380712]">
-                  Category Image URL
-                </label>
-                <input
-                  type="text"
+                <ImageUpload
                   value={form.image}
-                  onChange={(e) =>
-                    setForm({ ...form, image: e.target.value })
+                  onChange={(img) =>
+                    setForm({ ...form, image: (img as string) || "" })
                   }
-                  placeholder="https://... or /categories/sarees.jpg"
-                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-2.5 text-sm outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                  label="Category Cover Image"
+                  helperText="Upload a featured banner image for this collection from your computer or link."
                 />
               </div>
 

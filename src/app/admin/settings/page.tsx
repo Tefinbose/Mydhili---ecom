@@ -11,6 +11,7 @@ import {
   Save,
   RefreshCw,
 } from "lucide-react";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 interface StoreSettings {
   storeName: string;
@@ -340,31 +341,15 @@ export default function AdminSettingsPage() {
             <SectionTitle
               icon={ImageIcon}
               title="Boutique Logo"
-              description="Add the image URL of your boutique logo."
+              description="Upload your boutique logo from local storage or specify a URL."
             />
 
-            <Field
-              label="Logo Image URL"
+            <ImageUpload
               value={settings.logoUrl}
-              onChange={(v) => updateField("logoUrl", v)}
-              placeholder="/images/logo.png or an image URL"
+              onChange={(img) => updateField("logoUrl", (img as string) || "")}
+              label="Boutique Brandmark"
+              helperText="Upload a high-resolution PNG, SVG or WebP with transparent background."
             />
-
-            {settings.logoUrl && (
-              <div className="mt-5 rounded-xl border border-gray-100 bg-[#FAF7F2] p-5">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  Logo Preview
-                </p>
-                <img
-                  src={settings.logoUrl}
-                  alt="Boutique logo preview"
-                  className="max-h-24 max-w-full object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              </div>
-            )}
           </section>
 
           {/* Shipping */}

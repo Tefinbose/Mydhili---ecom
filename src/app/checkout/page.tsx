@@ -122,9 +122,23 @@ export default function CheckoutPage() {
           paymentMethod,
         }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to place your order.");
-      if (!data.orderNumber) throw new Error("Order was created, but the order number was not returned.");
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(
+          response.ok
+            ? "Your order may have been received, but the response was unreadable."
+            : `Order service responded with status ${response.status}. Please check your connection and try again.`
+        );
+      }
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || data?.message || "Unable to place your order.");
+      }
+      if (!data?.orderNumber) {
+        throw new Error("Order was created, but the order number was not returned.");
+      }
 
       clearCart();
       router.push(`/order-success?order=${encodeURIComponent(data.orderNumber)}`);
@@ -240,59 +254,72 @@ export default function CheckoutPage() {
           </div>
 
           {/* Summary */}
-          <aside className="relative overflow-hidden rounded-3xl bg-[#380712] p-6 text-white shadow-[0_24px_60px_rgba(56,7,18,0.22)] md:p-8 lg:sticky lg:top-28">
-            <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#D4AF69]/15 blur-3xl" />
-            <div className="relative">
-              <h2 className="flex items-center gap-3 text-2xl font-semibold tracking-[-0.025em]">
-                <Package size={22} className="text-[#E6C47A]" strokeWidth={1.5} /> Order summary
-              </h2>
+          <aside className="rounded-3xl border border-[#E9DFD2] bg-white p-6 shadow-sm md:p-8 lg:sticky lg:top-28">
+            <div>
+              <div className="flex items-center justify-between border-b border-[#E9DFD2] pb-4">
+                <h2 className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#380712]">
+                  <Package size={20} className="text-[#9A6B35]" strokeWidth={1.5} />
+                  Order summary
+                </h2>
+                <span className="rounded-full bg-[#FAF3E8] px-3 py-1 text-xs font-semibold text-[#380712]">
+                  {items.reduce((sum, item) => sum + item.quantity, 0)} {items.reduce((sum, item) => sum + item.quantity, 0) === 1 ? "item" : "items"}
+                </span>
+              </div>
 
-              <div className="mt-6 max-h-[320px] space-y-4 overflow-y-auto pr-1 [scrollbar-color:#D4AF69_transparent] [scrollbar-width:thin]">
+              <div className="mt-5 max-h-[320px] space-y-4 overflow-y-auto pr-1">
                 {items.map((item, index) => (
                   <div key={`${item.productId}-${item.size || ""}-${item.color || ""}-${index}`} className="flex gap-4">
-                    <div className="h-20 w-16 shrink-0 overflow-hidden rounded-xl bg-white/10">
+                    <div className="h-20 w-16 shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-[#FAF7F2]">
                       {item.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-[#E6C47A]"><ShoppingBag size={20} /></div>
+                        <div className="flex h-full items-center justify-center text-[#9A6B35]"><ShoppingBag size={20} /></div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 text-sm font-medium">{item.name}</p>
-                      <p className="mt-1 text-xs font-light text-white/60">
+                      <p className="line-clamp-2 text-sm font-semibold text-[#380712]">{item.name}</p>
+                      <p className="mt-1 text-xs text-stone-500">
                         {[item.size && `Size: ${item.size}`, item.color && `Colour: ${item.color}`, `Qty: ${item.quantity}`].filter(Boolean).join(" · ")}
                       </p>
-                      <p className="mt-1.5 text-sm font-semibold text-[#E6C47A]">{formatPrice(Number(item.price) * Number(item.quantity))}</p>
+                      <p className="mt-1.5 text-sm font-bold text-[#8B2635]">{formatPrice(Number(item.price) * Number(item.quantity))}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-6 space-y-3 border-t border-white/10 pt-6 text-sm text-white/75">
-                <div className="flex justify-between"><span>Subtotal</span><span className="text-white">{formatPrice(subtotal)}</span></div>
+              <div className="mt-6 space-y-3 border-t border-[#E9DFD2] pt-5 text-sm text-stone-600">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span className="font-semibold text-stone-900">{formatPrice(subtotal)}</span>
+                </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span className="text-white">{shippingCharge === 0 ? "Free" : formatPrice(shippingCharge)}</span>
+                  <span className="font-semibold text-emerald-700">
+                    {shippingCharge === 0 ? "Free" : formatPrice(shippingCharge)}
+                  </span>
                 </div>
-                <div className="flex items-baseline justify-between border-t border-white/10 pt-4">
-                  <span className="font-medium text-white">Total amount</span>
-                  <span className="text-3xl font-semibold tracking-[-0.03em] text-[#E6C47A]">{formatPrice(total)}</span>
+                <div className="flex items-baseline justify-between border-t border-[#E9DFD2] pt-4">
+                  <span className="font-semibold text-[#380712]">Total amount</span>
+                  <span className="font-serif text-2xl font-bold tracking-tight text-[#380712]">{formatPrice(total)}</span>
                 </div>
               </div>
 
-              <button type="submit" disabled={loading || !items.length} className={`${goldBtn} mt-7`}>
-                {loading ? "Placing order..." : "Place order"}
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#380712] text-[#E6C47A] transition-transform duration-300 group-hover:rotate-[-45deg]">
-                  <ArrowRight size={18} strokeWidth={2} />
-                </span>
+              <button
+                type="submit"
+                disabled={loading || !items.length}
+                className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-[#380712] px-6 text-sm font-semibold text-[#F5DFC0] shadow-md transition hover:bg-[#520A1A] disabled:opacity-50"
+              >
+                <span>{loading ? "Placing your order..." : "Place order (Cash on Delivery)"}</span>
+                <ArrowRight size={16} />
               </button>
 
-              <p className="mt-4 text-center text-[11px] font-light leading-5 text-white/50">
+              <p className="mt-3 text-center text-[11px] text-stone-500">
                 By placing your order, you agree to our terms and conditions.
               </p>
-              <p className="mt-4 flex items-center justify-center gap-2 text-xs font-light text-white/50">
-                <LockKeyhole size={14} /> Your information is securely handled.
+              <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-stone-500">
+                <LockKeyhole size={13} className="text-emerald-600" />
+                <span>Your information is securely handled.</span>
               </p>
             </div>
           </aside>

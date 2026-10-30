@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 
 const navigation = [
@@ -24,6 +25,11 @@ const navigation = [
     name: "Dashboard",
     href: "/admin",
     icon: LayoutDashboard,
+  },
+  {
+    name: "Analytics",
+    href: "/admin/analytics",
+    icon: BarChart3,
   },
   {
     name: "Products",
