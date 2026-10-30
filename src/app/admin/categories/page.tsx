@@ -10,8 +10,7 @@ import {
   Plus,
   Search,
   X,
-  Image as ImageIcon,
-  Sparkles,
+  ImageIcon,
   ExternalLink,
 } from "lucide-react";
 import ImageUpload from "@/components/admin/ImageUpload";
@@ -286,12 +285,9 @@ export default function AdminCategoriesPage() {
         {/* Categories Table */}
         <section className="overflow-hidden rounded-3xl border border-[#EDE4D9] bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-[#EEE7DE] px-6 py-4">
-            <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-[#D4AF69]" />
-              <h2 className="font-serif text-lg font-bold text-[#380712]">
-                Categories Registry
-              </h2>
-            </div>
+            <h2 className="font-serif text-lg font-bold text-[#380712]">
+              Categories Registry
+            </h2>
             <span className="text-xs text-stone-400">
               {filteredCategories.length} items
             </span>

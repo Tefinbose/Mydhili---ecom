@@ -8,7 +8,6 @@ import {
   Settings,
   ArrowUpRight,
   Plus,
-  Sparkles,
   TrendingUp,
   Clock,
   CheckCircle2,
@@ -101,11 +100,10 @@ export default async function AdminDashboardPage() {
         {/* Top Header / Greeting */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="h-px w-6 bg-[#A27B35]" />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
-                Executive Suite
-              </p>
+            <div className="flex items-center gap-2 text-xs font-medium text-stone-500">
+              <span>Admin</span>
+              <span>/</span>
+              <span className="text-stone-800">Overview</span>
             </div>
             <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#380712] sm:text-4xl">
               Boutique Overview
@@ -140,10 +138,7 @@ export default async function AdminDashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#EDE4D9] bg-white px-6 py-4 shadow-xs">
           <div className="flex flex-wrap items-center gap-5 text-xs">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              </span>
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
               <span className="font-semibold text-stone-800">Store Status: Online</span>
             </div>
 

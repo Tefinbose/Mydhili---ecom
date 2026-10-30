@@ -10,7 +10,6 @@ import {
   Loader2,
   Plus,
   Trash2,
-  Sparkles,
   ExternalLink,
 } from "lucide-react";
 import ImageUpload from "@/components/admin/ImageUpload";

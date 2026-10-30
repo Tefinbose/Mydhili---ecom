@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LockKeyhole, Mail, Eye, EyeOff, ArrowRight, Sparkles, ExternalLink } from "lucide-react";
+import { LockKeyhole, Mail, Eye, EyeOff, ArrowRight, ExternalLink } from "lucide-react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -103,7 +103,6 @@ export default function AdminLoginPage() {
 
           <div className="relative z-10 max-w-lg">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF69]/40 bg-white/10 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#E6C47A] backdrop-blur-sm">
-              <Sparkles size={12} className="text-[#D4AF69]" />
               Artisan Heritage &amp; Elegance
             </div>
 

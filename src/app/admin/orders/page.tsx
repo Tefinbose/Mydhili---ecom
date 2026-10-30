@@ -11,7 +11,6 @@ import {
   IndianRupee,
   Eye,
   AlertCircle,
-  Sparkles,
   ExternalLink,
   Filter,
 } from "lucide-react";
@@ -324,7 +323,6 @@ export default function AdminOrdersPage() {
           {/* Table Header Filter bar */}
           <div className="flex flex-col gap-4 border-b border-[#EEE7DE] p-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-[#D4AF69]" />
               <h2 className="font-serif text-lg font-bold text-[#380712]">
                 Order Registry
               </h2>

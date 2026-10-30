@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,6 +10,10 @@ import {
   Save,
   Trash2,
   ImagePlus,
+  ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+  Package,
 } from "lucide-react";
 import ImageUpload from "@/components/admin/ImageUpload";
 
@@ -29,6 +32,7 @@ type Category = {
 type Product = {
   _id: string;
   name: string;
+  slug?: string;
   description: string;
   shortDescription?: string;
   category: string | { _id: string; name: string };
@@ -58,6 +62,7 @@ export default function EditProductPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [slug, setSlug] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -66,7 +71,6 @@ export default function EditProductPage() {
     category: "",
     price: "",
     compareAtPrice: "",
-    images: "",
     variants: [{ ...emptyVariant }],
     isFeatured: false,
     isActive: true,
@@ -100,6 +104,8 @@ export default function EditProductPage() {
           ? product.category
           : product.category?._id || "";
 
+      setSlug(product.slug || "");
+
       setForm({
         name: product.name || "",
         description: product.description || "",
@@ -110,7 +116,6 @@ export default function EditProductPage() {
           product.compareAtPrice != null
             ? String(product.compareAtPrice)
             : "",
-        images: (product.images || []).join("\n"),
         variants:
           product.variants?.length > 0
             ? product.variants.map((variant) => ({
@@ -176,7 +181,7 @@ export default function EditProductPage() {
     }));
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSuccess("");
@@ -240,11 +245,7 @@ export default function EditProductPage() {
       }
 
       setSuccess("Product updated successfully.");
-
-      setTimeout(() => {
-        router.push("/admin/products");
-        router.refresh();
-      }, 800);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Something went wrong."
@@ -254,125 +255,160 @@ export default function EditProductPage() {
     }
   }
 
+  const labelClass =
+    "block text-xs font-semibold uppercase tracking-wider text-[#380712]";
+
+  const inputClass =
+    "mt-2 w-full rounded-xl border border-[#E9DFD2] bg-white px-4 py-3 text-sm font-medium text-[#380712] outline-none transition placeholder:text-stone-400 focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20";
+
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-[#9A6B35]" size={30} />
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+        <Loader2 className="animate-spin text-[#9A6B35]" size={32} />
+        <p className="text-xs font-medium text-stone-500">Loading product details...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-8">
-      <div className="mx-auto max-w-5xl">
-        <Link
-          href="/admin/products"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-stone-600 hover:text-[#380712]"
-        >
-          <ArrowLeft size={17} />
-          Back to Products
-        </Link>
+    <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-5xl space-y-6">
+        {/* Navigation Breadcrumb & Back */}
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-medium text-stone-500">
+              <Link href="/admin/products" className="hover:text-stone-800">
+                Products
+              </Link>
+              <span>/</span>
+              <span className="text-stone-800 font-semibold">Edit Product</span>
+            </div>
+            <h1 className="mt-1 font-serif text-2xl font-bold tracking-tight text-[#380712] sm:text-3xl">
+              {form.name || "Edit Product"}
+            </h1>
+          </div>
 
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
-            Product Management
-          </p>
-          <h1 className="mt-2 text-3xl font-serif text-[#380712]">
-            Edit Product
-          </h1>
-          <p className="mt-2 text-sm text-stone-500">
-            Update your product information, images and inventory.
-          </p>
+          <div className="flex items-center gap-2.5">
+            {slug && (
+              <Link
+                href={`/products/${slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3.5 py-2 text-xs font-medium text-stone-700 shadow-xs transition hover:bg-stone-50"
+              >
+                <span>Live view</span>
+                <ExternalLink size={12} className="text-stone-400" />
+              </Link>
+            )}
+
+            <Link
+              href="/admin/products"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3.5 py-2 text-xs font-medium text-stone-700 shadow-xs transition hover:bg-stone-50"
+            >
+              <ArrowLeft size={13} />
+              <span>Back</span>
+            </Link>
+          </div>
         </div>
 
+        {/* Status Alerts */}
         {error && (
-          <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
+          <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-700">
+            <AlertCircle size={16} className="shrink-0 text-red-600" />
+            <span className="flex-1">{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-            {success}
+          <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-medium text-emerald-800">
+            <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+            <span className="flex-1">{success}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-5 text-lg font-semibold text-[#380712]">
-              Basic Information
-            </h2>
+          {/* Card 1: Core Details */}
+          <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
+            <div className="border-b border-stone-100 pb-4 mb-5">
+              <h2 className="font-serif text-lg font-bold text-[#380712]">
+                Product Details
+              </h2>
+              <p className="mt-0.5 text-xs text-stone-500">
+                Primary title, collection assignment, and descriptions.
+              </p>
+            </div>
 
             <div className="space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Product Name *
-                </label>
+                <label className={labelClass}>Product Title *</label>
                 <input
                   required
                   value={form.name}
                   onChange={(e) => updateField("name", e.target.value)}
-                  className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
+                  placeholder="e.g. Vintage Banarasi Silk Saree"
+                  className={inputClass}
                 />
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Short Description
-                </label>
-                <input
-                  value={form.shortDescription}
-                  onChange={(e) =>
-                    updateField("shortDescription", e.target.value)
-                  }
-                  className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
-                />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Category *</label>
+                  <select
+                    required
+                    value={form.category}
+                    onChange={(e) => updateField("category", e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((category) => (
+                      <option key={category._id} value={category._id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Short Tagline / Subtitle</label>
+                  <input
+                    value={form.shortDescription}
+                    onChange={(e) =>
+                      updateField("shortDescription", e.target.value)
+                    }
+                    placeholder="e.g. Pure Zari Weave with Handloom Border"
+                    className={inputClass}
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Full Description *
-                </label>
+                <label className={labelClass}>Full Product Description *</label>
                 <textarea
                   required
-                  rows={5}
+                  rows={4}
                   value={form.description}
                   onChange={(e) => updateField("description", e.target.value)}
-                  className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
+                  placeholder="Describe the fabric, craft, occasion, and care instructions..."
+                  className={`${inputClass} resize-y`}
                 />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Category *
-                </label>
-                <select
-                  required
-                  value={form.category}
-                  onChange={(e) => updateField("category", e.target.value)}
-                  className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-[#9A6B35]"
-                >
-                  <option value="">Select category</option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
           </section>
 
-          <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-5 text-lg font-semibold text-[#380712]">
-              Pricing
-            </h2>
+          {/* Card 2: Pricing */}
+          <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
+            <div className="border-b border-stone-100 pb-4 mb-5">
+              <h2 className="font-serif text-lg font-bold text-[#380712]">
+                Pricing &amp; Value
+              </h2>
+              <p className="mt-0.5 text-xs text-stone-500">
+                Selling price and optional compare-at strikethrough rate.
+              </p>
+            </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Selling Price (₹) *
-                </label>
+                <label className={labelClass}>Selling Price (₹) *</label>
                 <input
                   required
                   type="number"
@@ -380,14 +416,13 @@ export default function EditProductPage() {
                   step="0.01"
                   value={form.price}
                   onChange={(e) => updateField("price", e.target.value)}
-                  className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
+                  placeholder="3499"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Compare-at Price (₹)
-                </label>
+                <label className={labelClass}>Compare-at Price (₹, optional)</label>
                 <input
                   type="number"
                   min="0"
@@ -396,23 +431,25 @@ export default function EditProductPage() {
                   onChange={(e) =>
                     updateField("compareAtPrice", e.target.value)
                   }
-                  className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
+                  placeholder="4999 (shows as strikethrough)"
+                  className={inputClass}
                 />
               </div>
             </div>
           </section>
 
+          {/* Card 3: Gallery Photography with Local Image Upload */}
           <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
             <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
-                <h2 className="font-serif text-xl font-bold text-[#380712]">
+                <h2 className="font-serif text-lg font-bold text-[#380712]">
                   Gallery Images
                 </h2>
                 <p className="mt-0.5 text-xs text-stone-500">
-                  Upload images from your computer or paste image links. First image becomes the primary cover.
+                  Upload photos from your computer or provide URLs. First image is the primary cover.
                 </p>
               </div>
-              <ImagePlus size={22} className="text-[#9A6B35]" />
+              <ImagePlus size={20} className="text-[#9A6B35]" />
             </div>
 
             <ImageUpload
@@ -424,127 +461,181 @@ export default function EditProductPage() {
             />
           </section>
 
-          <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          {/* Card 4: Variants & Inventory with Clean Clear Columns */}
+          <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 pb-4">
               <div>
-                <h2 className="text-lg font-semibold text-[#380712]">
-                  Product Variants
+                <h2 className="font-serif text-lg font-bold text-[#380712]">
+                  Variants &amp; Inventory
                 </h2>
-                <p className="mt-1 text-sm text-stone-500">
-                  Manage SKU, size, color and available stock.
+                <p className="mt-0.5 text-xs text-stone-500">
+                  Set available stock for sizes, colors, and SKUs.
                 </p>
               </div>
+
               <button
                 type="button"
                 onClick={addVariant}
-                className="inline-flex items-center gap-2 rounded-lg border border-[#9A6B35] px-4 py-2 text-sm font-medium text-[#9A6B35] hover:bg-[#FAF7F2]"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[#D4AF69]/40 bg-[#FAF3E8] px-3.5 py-1.5 text-xs font-semibold text-[#380712] transition hover:bg-[#D4AF69]"
               >
-                <Plus size={16} />
-                Add Variant
+                <Plus size={14} />
+                <span>Add Variant</span>
               </button>
             </div>
 
-            <div className="space-y-4">
+            {/* Variant Rows with Explicit Visible Labels */}
+            <div className="space-y-3">
               {form.variants.map((variant, index) => (
                 <div
                   key={index}
-                  className="grid gap-3 rounded-lg border border-stone-200 p-4 sm:grid-cols-2 lg:grid-cols-5"
+                  className="rounded-2xl border border-stone-200/90 bg-[#FAF7F2]/60 p-4 transition hover:border-[#D4AF69]"
                 >
-                  <input
-                    value={variant.sku}
-                    onChange={(e) =>
-                      updateVariant(index, "sku", e.target.value)
-                    }
-                    placeholder="SKU"
-                    className="rounded-lg border border-stone-300 px-3 py-2"
-                  />
-                  <input
-                    value={variant.size}
-                    onChange={(e) =>
-                      updateVariant(index, "size", e.target.value)
-                    }
-                    placeholder="Size"
-                    className="rounded-lg border border-stone-300 px-3 py-2"
-                  />
-                  <input
-                    value={variant.color}
-                    onChange={(e) =>
-                      updateVariant(index, "color", e.target.value)
-                    }
-                    placeholder="Color"
-                    className="rounded-lg border border-stone-300 px-3 py-2"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    value={variant.stock}
-                    onChange={(e) =>
-                      updateVariant(index, "stock", Number(e.target.value))
-                    }
-                    placeholder="Stock"
-                    className="rounded-lg border border-stone-300 px-3 py-2"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeVariant(index)}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 size={15} />
-                    Remove
-                  </button>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-9 lg:items-end">
+                    <div className="lg:col-span-3">
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-600 block mb-1">
+                        SKU
+                      </label>
+                      <input
+                        value={variant.sku}
+                        onChange={(e) =>
+                          updateVariant(index, "sku", e.target.value)
+                        }
+                        placeholder="e.g. VBS-RED-M"
+                        className="w-full rounded-xl border border-[#E9DFD2] bg-white px-3 py-2 text-xs font-semibold text-[#380712] outline-none transition focus:border-[#9A6B35]"
+                      />
+                    </div>
+
+                    <div className="lg:col-span-2">
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-600 block mb-1">
+                        Size
+                      </label>
+                      <input
+                        value={variant.size}
+                        onChange={(e) =>
+                          updateVariant(index, "size", e.target.value)
+                        }
+                        placeholder="e.g. Free Size, S, M, XL"
+                        className="w-full rounded-xl border border-[#E9DFD2] bg-white px-3 py-2 text-xs font-semibold text-[#380712] outline-none transition focus:border-[#9A6B35]"
+                      />
+                    </div>
+
+                    <div className="lg:col-span-2">
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-600 block mb-1">
+                        Color
+                      </label>
+                      <input
+                        value={variant.color}
+                        onChange={(e) =>
+                          updateVariant(index, "color", e.target.value)
+                        }
+                        placeholder="e.g. Royal Maroon"
+                        className="w-full rounded-xl border border-[#E9DFD2] bg-white px-3 py-2 text-xs font-semibold text-[#380712] outline-none transition focus:border-[#9A6B35]"
+                      />
+                    </div>
+
+                    <div className="lg:col-span-1">
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-600 block mb-1">
+                        Stock
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={variant.stock}
+                        onChange={(e) =>
+                          updateVariant(index, "stock", Number(e.target.value))
+                        }
+                        placeholder="0"
+                        className="w-full rounded-xl border border-[#E9DFD2] bg-white px-3 py-2 text-xs font-semibold text-[#380712] outline-none transition focus:border-[#9A6B35]"
+                      />
+                    </div>
+
+                    <div className="col-span-2 sm:col-span-4 lg:col-span-1 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(index)}
+                        disabled={form.variants.length <= 1}
+                        className="inline-flex h-9 w-full lg:w-9 items-center justify-center rounded-xl border border-red-200 bg-white text-red-600 transition hover:bg-red-50 disabled:opacity-30 disabled:pointer-events-none"
+                        title="Remove variant"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-5 text-lg font-semibold text-[#380712]">
-              Store Settings
-            </h2>
+          {/* Card 5: Storefront Display Options */}
+          <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
+            <div className="border-b border-stone-100 pb-4 mb-4">
+              <h2 className="font-serif text-lg font-bold text-[#380712]">
+                Visibility &amp; Curation
+              </h2>
+              <p className="mt-0.5 text-xs text-stone-500">
+                Control active storefront status and homepage showcase placement.
+              </p>
+            </div>
 
-            <div className="space-y-4">
-              <label className="flex items-center gap-3 text-sm">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-stone-200 bg-[#FAF7F2]/50 p-4 transition hover:bg-[#FAF3E8]/50">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) => updateField("isActive", e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded accent-[#380712]"
+                />
+                <div>
+                  <span className="text-xs font-semibold text-[#380712] block">
+                    Product Active in Store
+                  </span>
+                  <span className="text-[11px] text-stone-500 block mt-0.5">
+                    Customers can browse, add to bag, and purchase this product.
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-stone-200 bg-[#FAF7F2]/50 p-4 transition hover:bg-[#FAF3E8]/50">
                 <input
                   type="checkbox"
                   checked={form.isFeatured}
                   onChange={(e) =>
                     updateField("isFeatured", e.target.checked)
                   }
-                  className="h-4 w-4 accent-[#380712]"
+                  className="mt-0.5 h-4 w-4 rounded accent-[#380712]"
                 />
-                Show this product as featured
-              </label>
-
-              <label className="flex items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.isActive}
-                  onChange={(e) => updateField("isActive", e.target.checked)}
-                  className="h-4 w-4 accent-[#380712]"
-                />
-                Product is active in the store
+                <div>
+                  <span className="text-xs font-semibold text-[#380712] block">
+                    Featured Collection
+                  </span>
+                  <span className="text-[11px] text-stone-500 block mt-0.5">
+                    Showcase prominently on the boutique homepage banner.
+                  </span>
+                </div>
               </label>
             </div>
           </section>
 
-          <div className="flex flex-wrap justify-end gap-3 pb-8">
+          {/* Sticky Bottom Save Actions */}
+          <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white/95 p-4 shadow-lg backdrop-blur-md">
             <Link
               href="/admin/products"
-              className="rounded-lg border border-stone-300 px-5 py-3 text-sm font-medium text-stone-700 hover:bg-white"
+              className="rounded-xl border border-stone-200 px-5 py-2.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition"
             >
               Cancel
             </Link>
+
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#380712] px-6 py-3 text-sm font-medium text-white hover:bg-[#54101f] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#380712] px-7 py-2.5 text-xs font-semibold text-[#F5DFC0] shadow-md transition hover:bg-[#520A1A] disabled:opacity-50"
             >
               {saving ? (
-                <Loader2 size={17} className="animate-spin" />
+                <Loader2 size={15} className="animate-spin text-[#D4AF69]" />
               ) : (
-                <Save size={17} />
+                <Save size={15} />
               )}
-              {saving ? "Saving..." : "Save Changes"}
+              <span>{saving ? "Saving Changes..." : "Save Product Changes"}</span>
             </button>
           </div>
         </form>

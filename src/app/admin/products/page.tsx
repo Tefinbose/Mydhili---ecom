@@ -12,7 +12,6 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
   Filter,
@@ -311,12 +310,9 @@ export default function AdminProductsPage() {
         {/* Main Products Table */}
         <section className="overflow-hidden rounded-3xl border border-[#EDE4D9] bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-[#EEE7DE] px-6 py-4">
-            <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-[#D4AF69]" />
-              <h2 className="font-serif text-lg font-bold text-[#380712]">
-                Active Catalog
-              </h2>
-            </div>
+            <h2 className="font-serif text-lg font-bold text-[#380712]">
+              Active Catalog
+            </h2>
 
             <span className="rounded-full bg-[#FAF7F2] px-3 py-1 text-xs font-semibold text-stone-600">
               Showing {filteredProducts.length} of {products.length} items
@@ -432,47 +428,36 @@ export default function AdminProductsPage() {
                         {/* Stock Column */}
                         <td className="px-5 py-4">
                           <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            className={`text-xs font-medium ${
                               isOutOfStock
-                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                ? "text-rose-600 font-semibold"
                                 : isLowStock
-                                ? "bg-amber-50 text-amber-800 border border-amber-200"
-                                : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                ? "text-amber-700"
+                                : "text-stone-700"
                             }`}
                           >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                isOutOfStock
-                                  ? "bg-rose-600"
-                                  : isLowStock
-                                  ? "bg-amber-600"
-                                  : "bg-emerald-600"
-                              }`}
-                            />
                             {isOutOfStock
-                              ? "Out of stock"
-                              : isLowStock
-                              ? `Low stock (${totalStock})`
-                              : `In stock (${totalStock})`}
+                              ? "0 in stock"
+                              : `${totalStock} in stock`}
                           </span>
                         </td>
 
                         {/* Status Column */}
                         <td className="px-5 py-4">
-                          <div className="flex flex-col items-start gap-1">
+                          <div className="flex items-center gap-2">
                             <span
-                              className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                              className={`text-xs font-medium ${
                                 product.isActive
-                                  ? "bg-emerald-50 text-emerald-700"
-                                  : "bg-stone-100 text-stone-500"
+                                  ? "text-emerald-700"
+                                  : "text-stone-500"
                               }`}
                             >
                               {product.isActive ? "Active" : "Draft"}
                             </span>
 
                             {product.isFeatured && (
-                              <span className="inline-flex rounded-full bg-[#FBF3E5] px-2 py-0.5 text-[10px] font-semibold text-[#8A5A22]">
-                                ★ Featured
+                              <span className="rounded-md bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">
+                                Featured
                               </span>
                             )}
                           </div>

@@ -40,7 +40,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch all orders matching period
-    const orders = await Order.find(orderFilter).lean();
+    const [orders, recentOrdersRaw] = await Promise.all([
+      Order.find(orderFilter).sort({ createdAt: -1 }).lean(),
+      Order.find().sort({ createdAt: -1 }).limit(6).lean(),
+    ]);
 
     // Also fetch all products and categories for catalog insights
     const [totalProductsCount, totalCategories] = await Promise.all([
@@ -56,6 +59,9 @@ export async function GET(request: NextRequest) {
     let paidOrdersCount = 0;
     let codCount = 0;
     let onlineCount = 0;
+    let todayRevenue = 0;
+
+    const todayStr = now.toISOString().split("T")[0];
 
     const statusCounts: Record<string, number> = {
       pending: 0,
@@ -82,7 +88,7 @@ export async function GET(request: NextRequest) {
     // Daily revenue map for trend chart
     const dailyRevenueMap = new Map<
       string,
-      { date: string; label: string; revenue: number; orders: number }
+      { date: string; label: string; revenue: number; orders: number; units: number }
     >();
 
     // Initialize daily revenue map for the range (if 7d or 30d)
@@ -96,7 +102,7 @@ export async function GET(request: NextRequest) {
           month: "short",
           day: "numeric",
         });
-        dailyRevenueMap.set(key, { date: key, label, revenue: 0, orders: 0 });
+        dailyRevenueMap.set(key, { date: key, label, revenue: 0, orders: 0, units: 0 });
       }
     }
 
@@ -106,6 +112,13 @@ export async function GET(request: NextRequest) {
 
       if (!isCancelled) {
         totalRevenue += orderTotal;
+      }
+
+      if (order.createdAt) {
+        const orderDateStr = new Date(order.createdAt).toISOString().split("T")[0];
+        if (orderDateStr === todayStr && !isCancelled) {
+          todayRevenue += orderTotal;
+        }
       }
 
       if (order.orderStatus === "delivered") {
@@ -132,33 +145,11 @@ export async function GET(request: NextRequest) {
       statusCounts[statusKey] = (statusCounts[statusKey] || 0) + 1;
 
       // Group by day
-      if (order.createdAt) {
-        const dateKey = new Date(order.createdAt).toISOString().split("T")[0];
-        const existingDay = dailyRevenueMap.get(dateKey);
-        if (existingDay) {
-          if (!isCancelled) {
-            existingDay.revenue += orderTotal;
-          }
-          existingDay.orders += 1;
-        } else if (!startDate) {
-          // If all time, accumulate dynamically
-          const label = new Date(order.createdAt).toLocaleDateString("en-IN", {
-            month: "short",
-            day: "numeric",
-          });
-          dailyRevenueMap.set(dateKey, {
-            date: dateKey,
-            label,
-            revenue: isCancelled ? 0 : orderTotal,
-            orders: 1,
-          });
-        }
-      }
-
-      // Process items for top products
+      let orderUnits = 0;
       if (Array.isArray(order.items)) {
         for (const item of order.items) {
           const qty = Number(item.quantity) || 1;
+          orderUnits += qty;
           const itemRev = (Number(item.price) || 0) * qty;
 
           if (!isCancelled) {
@@ -180,6 +171,31 @@ export async function GET(request: NextRequest) {
           }
 
           productSalesMap.set(key, current);
+        }
+      }
+
+      if (order.createdAt) {
+        const dateKey = new Date(order.createdAt).toISOString().split("T")[0];
+        const existingDay = dailyRevenueMap.get(dateKey);
+        if (existingDay) {
+          if (!isCancelled) {
+            existingDay.revenue += orderTotal;
+            existingDay.units += orderUnits;
+          }
+          existingDay.orders += 1;
+        } else if (!startDate) {
+          // If all time, accumulate dynamically
+          const label = new Date(order.createdAt).toLocaleDateString("en-IN", {
+            month: "short",
+            day: "numeric",
+          });
+          dailyRevenueMap.set(dateKey, {
+            date: dateKey,
+            label,
+            revenue: isCancelled ? 0 : orderTotal,
+            orders: 1,
+            units: orderUnits,
+          });
         }
       }
     }
@@ -209,7 +225,7 @@ export async function GET(request: NextRequest) {
       totalCategories.map((c) => [String(c._id), c.name])
     );
 
-    // Sample category distribution estimate from catalog products
+    // Category distribution estimate from catalog products
     const products = await Product.find({ isActive: true })
       .select("category price")
       .lean();
@@ -237,12 +253,26 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    // Clean recent orders
+    const recentOrders = recentOrdersRaw.map((o) => ({
+      _id: String(o._id),
+      orderNumber: o.orderNumber || String(o._id).slice(-8).toUpperCase(),
+      customerName: o.customer?.name || "Guest Customer",
+      customerEmail: o.customer?.email || "",
+      total: Number(o.total) || 0,
+      orderStatus: o.orderStatus || "pending",
+      paymentMethod: o.paymentMethod || "cod",
+      itemCount: Array.isArray(o.items) ? o.items.length : 1,
+      createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
+    }));
+
     return NextResponse.json({
       success: true,
       analytics: {
         period,
         kpis: {
           totalRevenue,
+          todayRevenue,
           totalOrdersCount,
           averageOrderValue,
           totalUnitsSold,
@@ -262,6 +292,7 @@ export async function GET(request: NextRequest) {
         },
         topProducts,
         categoryDistribution,
+        recentOrders,
       },
     });
   } catch (error) {

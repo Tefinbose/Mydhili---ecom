@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   TrendingUp,
@@ -14,6 +14,9 @@ import {
   ArrowUpRight,
   AlertCircle,
   Calendar,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
 } from "lucide-react";
 
 interface DailyTrendItem {
@@ -21,6 +24,7 @@ interface DailyTrendItem {
   label: string;
   revenue: number;
   orders: number;
+  units: number;
 }
 
 interface TopProductItem {
@@ -37,10 +41,23 @@ interface CategoryItem {
   percentage: number;
 }
 
+interface RecentOrderItem {
+  _id: string;
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  total: number;
+  orderStatus: string;
+  paymentMethod: string;
+  itemCount: number;
+  createdAt: string;
+}
+
 interface AnalyticsData {
   period: string;
   kpis: {
     totalRevenue: number;
+    todayRevenue: number;
     totalOrdersCount: number;
     averageOrderValue: number;
     totalUnitsSold: number;
@@ -60,47 +77,71 @@ interface AnalyticsData {
   };
   topProducts: TopProductItem[];
   categoryDistribution: CategoryItem[];
+  recentOrders: RecentOrderItem[];
 }
 
-const statusMeta: Record<string, { label: string; dot: string; bar: string }> = {
+type ActiveMetric = "revenue" | "orders" | "aov" | "units";
+
+const statusMeta: Record<string, { label: string; dot: string; bar: string; badge: string }> = {
   delivered: {
     label: "Delivered",
     dot: "bg-emerald-500",
     bar: "bg-emerald-500",
+    badge: "bg-emerald-50 text-emerald-800 border-emerald-200",
   },
   shipped: {
     label: "Shipped",
     dot: "bg-sky-500",
     bar: "bg-sky-500",
+    badge: "bg-sky-50 text-sky-800 border-sky-200",
   },
   processing: {
     label: "Processing",
     dot: "bg-amber-500",
     bar: "bg-amber-500",
+    badge: "bg-amber-50 text-amber-800 border-amber-200",
   },
   confirmed: {
     label: "Confirmed",
     dot: "bg-indigo-500",
     bar: "bg-indigo-500",
+    badge: "bg-indigo-50 text-indigo-800 border-indigo-200",
   },
   pending: {
     label: "Pending",
     dot: "bg-stone-400",
     bar: "bg-stone-400",
+    badge: "bg-stone-100 text-stone-700 border-stone-200",
   },
   cancelled: {
     label: "Cancelled",
     dot: "bg-rose-500",
     bar: "bg-rose-400",
+    badge: "bg-rose-50 text-rose-800 border-rose-200",
   },
 };
 
+function formatPrice(amount: number): string {
+  return `₹${amount.toLocaleString("en-IN")}`;
+}
+
+function formatDateRel(dateString: string): string {
+  const d = new Date(dateString);
+  return d.toLocaleDateString("en-IN", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function AdminAnalyticsPage() {
   const [period, setPeriod] = useState<"7d" | "30d" | "90d" | "all">("30d");
+  const [activeMetric, setActiveMetric] = useState<ActiveMetric>("revenue");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hoveredDay, setHoveredDay] = useState<DailyTrendItem | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -125,19 +166,89 @@ export default function AdminAnalyticsPage() {
     fetchAnalytics();
   }, [fetchAnalytics]);
 
-  const maxRevenue = data?.dailyTrend
-    ? Math.max(...data.dailyTrend.map((d) => d.revenue), 1000)
-    : 1000;
+  // Daily trend calculations for SVG Spline Curve
+  const points = useMemo(() => {
+    const list = data?.dailyTrend || [];
+    if (list.length === 0) return [];
 
-  const peakDay = data?.dailyTrend?.reduce((prev, curr) =>
-    curr.revenue > (prev?.revenue || 0) ? curr : prev,
-    data.dailyTrend[0]
-  );
+    return list.map((item) => {
+      let val = item.revenue;
+      if (activeMetric === "orders") val = item.orders;
+      else if (activeMetric === "units") val = item.units;
+      else if (activeMetric === "aov") val = item.orders > 0 ? Math.round(item.revenue / item.orders) : 0;
+      return { ...item, value: val };
+    });
+  }, [data?.dailyTrend, activeMetric]);
+
+  const maxValue = useMemo(() => {
+    if (points.length === 0) return 100;
+    const max = Math.max(...points.map((p) => p.value));
+    return max > 0 ? max * 1.15 : 100;
+  }, [points]);
+
+  // Generate SVG path coordinates
+  const chartHeight = 220;
+  const chartWidth = 900;
+  const paddingX = 20;
+  const paddingBottom = 30;
+  const paddingTop = 20;
+
+  const svgCoordinates = useMemo(() => {
+    if (points.length === 0) return [];
+    const stepX = (chartWidth - paddingX * 2) / Math.max(points.length - 1, 1);
+    const usableHeight = chartHeight - paddingTop - paddingBottom;
+
+    return points.map((p, i) => {
+      const x = paddingX + i * stepX;
+      const normalized = p.value / maxValue;
+      const y = paddingTop + (1 - normalized) * usableHeight;
+      return { x, y, ...p };
+    });
+  }, [points, maxValue, chartWidth, chartHeight]);
+
+  // Build smooth bezier path string
+  const { linePath, areaPath } = useMemo(() => {
+    if (svgCoordinates.length === 0) return { linePath: "", areaPath: "" };
+    if (svgCoordinates.length === 1) {
+      const p = svgCoordinates[0];
+      return {
+        linePath: `M ${p.x} ${p.y} L ${chartWidth - paddingX} ${p.y}`,
+        areaPath: `M ${p.x} ${chartHeight - paddingBottom} L ${p.x} ${p.y} L ${chartWidth - paddingX} ${p.y} L ${chartWidth - paddingX} ${chartHeight - paddingBottom} Z`,
+      };
+    }
+
+    let d = `M ${svgCoordinates[0].x} ${svgCoordinates[0].y}`;
+    for (let i = 0; i < svgCoordinates.length - 1; i++) {
+      const p0 = svgCoordinates[i === 0 ? 0 : i - 1];
+      const p1 = svgCoordinates[i];
+      const p2 = svgCoordinates[i + 1];
+      const p3 = svgCoordinates[i + 2 < svgCoordinates.length ? i + 2 : i + 1];
+
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+      d += ` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+    }
+
+    const first = svgCoordinates[0];
+    const last = svgCoordinates[svgCoordinates.length - 1];
+    const baseline = chartHeight - paddingBottom;
+    const a = `${d} L ${last.x.toFixed(2)} ${baseline} L ${first.x.toFixed(2)} ${baseline} Z`;
+
+    return { linePath: d, areaPath: a };
+  }, [svgCoordinates, chartWidth, chartHeight, paddingX, paddingBottom]);
+
+  // Active inspected day
+  const inspectedDay = hoverIndex !== null && svgCoordinates[hoverIndex]
+    ? svgCoordinates[hoverIndex]
+    : svgCoordinates[svgCoordinates.length - 1] || null;
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* Authentic Clean Dashboard Header */}
+        {/* Authentic Header */}
         <header className="flex flex-col justify-between gap-4 border-b border-stone-200/80 pb-6 sm:flex-row sm:items-end">
           <div>
             <div className="flex items-center gap-2 text-xs font-medium text-stone-500">
@@ -149,7 +260,7 @@ export default function AdminAnalyticsPage() {
               Analytics
             </h1>
             <p className="mt-1 text-xs text-stone-500 sm:text-sm">
-              Sales volume, order fulfillment velocity, and inventory demand.
+              Real-time sales velocity, fulfillment metrics, and boutique demand.
             </p>
           </div>
 
@@ -193,7 +304,7 @@ export default function AdminAnalyticsPage() {
               />
             </button>
 
-            {/* Live Store link */}
+            {/* Live Storefront link */}
             <Link
               href="/"
               target="_blank"
@@ -220,9 +331,8 @@ export default function AdminAnalyticsPage() {
           </div>
         )}
 
-        {/* 4 Professional KPI Metric Cards */}
+        {/* 4 Top KPI Metric Cards */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Total Sales */}
           <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-xs transition hover:border-stone-300">
             <div className="flex items-center justify-between text-stone-500">
               <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
@@ -231,18 +341,17 @@ export default function AdminAnalyticsPage() {
               <DollarSign size={16} className="text-stone-400" />
             </div>
             <p className="mt-3 text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
-              ₹{data?.kpis.totalRevenue.toLocaleString("en-IN") || 0}
+              {formatPrice(data?.kpis.totalRevenue || 0)}
             </p>
             <p className="mt-1 text-xs text-stone-500">
               Net revenue excl. cancellations
             </p>
           </div>
 
-          {/* Total Orders */}
           <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-xs transition hover:border-stone-300">
             <div className="flex items-center justify-between text-stone-500">
               <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
-                Orders
+                Total Orders
               </span>
               <ShoppingBag size={16} className="text-stone-400" />
             </div>
@@ -254,7 +363,6 @@ export default function AdminAnalyticsPage() {
             </p>
           </div>
 
-          {/* Average Order Value (AOV) */}
           <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-xs transition hover:border-stone-300">
             <div className="flex items-center justify-between text-stone-500">
               <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
@@ -263,18 +371,17 @@ export default function AdminAnalyticsPage() {
               <TrendingUp size={16} className="text-stone-400" />
             </div>
             <p className="mt-3 text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
-              ₹{data?.kpis.averageOrderValue.toLocaleString("en-IN") || 0}
+              {formatPrice(data?.kpis.averageOrderValue || 0)}
             </p>
             <p className="mt-1 text-xs text-stone-500">
-              Average spend per transaction
+              Average ticket size
             </p>
           </div>
 
-          {/* Units Sold */}
           <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-xs transition hover:border-stone-300">
             <div className="flex items-center justify-between text-stone-500">
               <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
-                Units Sold
+                Units Dispatched
               </span>
               <Package size={16} className="text-stone-400" />
             </div>
@@ -282,113 +389,288 @@ export default function AdminAnalyticsPage() {
               {data?.kpis.totalUnitsSold || 0}
             </p>
             <p className="mt-1 text-xs text-stone-500">
-              Total attire pieces dispatched
+              Apparel items ordered
             </p>
           </div>
         </div>
 
-        {/* Revenue Trajectory Bar Chart */}
-        <section className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-xs">
-          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center border-b border-stone-100 pb-4">
-            <div>
-              <h2 className="text-base font-semibold text-stone-900">
-                Revenue trajectory
-              </h2>
-              <p className="mt-0.5 text-xs text-stone-500">
-                Daily order volume and gross revenue across {period === "all" ? "entire history" : `last ${period.replace("d", " days")}`}.
+        {/* REPLACED MODERN SECTION: Interactive Performance Hub with Smooth Spline Area Curve */}
+        <section className="rounded-2xl border border-stone-200/80 bg-white shadow-xs overflow-hidden">
+          {/* Multi-Metric Switcher Tabs (Stripe / Shopify style) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 border-b border-stone-200/80 divide-x divide-stone-200/80 bg-stone-50/40">
+            <button
+              type="button"
+              onClick={() => setActiveMetric("revenue")}
+              className={`p-4 sm:p-5 text-left transition-colors ${
+                activeMetric === "revenue"
+                  ? "bg-white border-b-2 border-b-[#380712] shadow-xs"
+                  : "hover:bg-stone-50"
+              }`}
+            >
+              <span className="text-[11px] font-medium uppercase tracking-wider text-stone-500">
+                Sales Trajectory
+              </span>
+              <p className="mt-1.5 text-xl font-bold tracking-tight text-stone-900">
+                {formatPrice(data?.kpis.totalRevenue || 0)}
               </p>
-            </div>
+              <span className="mt-0.5 inline-block text-[11px] text-stone-400">
+                Gross sales in period
+              </span>
+            </button>
 
-            <div className="flex items-center gap-3">
-              {peakDay && peakDay.revenue > 0 && (
-                <div className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-stone-50 px-3 py-1 text-xs text-stone-600">
-                  <span className="text-stone-400">Peak:</span>
-                  <span className="font-semibold text-stone-900">
-                    ₹{peakDay.revenue.toLocaleString("en-IN")}
-                  </span>
-                  <span className="text-stone-400">({peakDay.label})</span>
-                </div>
-              )}
+            <button
+              type="button"
+              onClick={() => setActiveMetric("orders")}
+              className={`p-4 sm:p-5 text-left transition-colors ${
+                activeMetric === "orders"
+                  ? "bg-white border-b-2 border-b-[#380712] shadow-xs"
+                  : "hover:bg-stone-50"
+              }`}
+            >
+              <span className="text-[11px] font-medium uppercase tracking-wider text-stone-500">
+                Order Frequency
+              </span>
+              <p className="mt-1.5 text-xl font-bold tracking-tight text-stone-900">
+                {data?.kpis.totalOrdersCount || 0} orders
+              </p>
+              <span className="mt-0.5 inline-block text-[11px] text-stone-400">
+                Volume across dates
+              </span>
+            </button>
 
-              {hoveredDay && (
-                <div className="inline-flex items-center gap-1.5 rounded-lg border border-[#380712]/20 bg-[#380712] px-3 py-1 text-xs text-white">
-                  <span>{hoveredDay.label}:</span>
-                  <span className="font-semibold text-[#F5DFC0]">
-                    ₹{hoveredDay.revenue.toLocaleString("en-IN")}
-                  </span>
-                  <span className="text-white/70">
-                    ({hoveredDay.orders} {hoveredDay.orders === 1 ? "order" : "orders"})
-                  </span>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => setActiveMetric("aov")}
+              className={`p-4 sm:p-5 text-left transition-colors ${
+                activeMetric === "aov"
+                  ? "bg-white border-b-2 border-b-[#380712] shadow-xs"
+                  : "hover:bg-stone-50"
+              }`}
+            >
+              <span className="text-[11px] font-medium uppercase tracking-wider text-stone-500">
+                Avg. Basket Size
+              </span>
+              <p className="mt-1.5 text-xl font-bold tracking-tight text-stone-900">
+                {formatPrice(data?.kpis.averageOrderValue || 0)}
+              </p>
+              <span className="mt-0.5 inline-block text-[11px] text-stone-400">
+                Revenue per order
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveMetric("units")}
+              className={`p-4 sm:p-5 text-left transition-colors ${
+                activeMetric === "units"
+                  ? "bg-white border-b-2 border-b-[#380712] shadow-xs"
+                  : "hover:bg-stone-50"
+              }`}
+            >
+              <span className="text-[11px] font-medium uppercase tracking-wider text-stone-500">
+                Inventory Dispatched
+              </span>
+              <p className="mt-1.5 text-xl font-bold tracking-tight text-stone-900">
+                {data?.kpis.totalUnitsSold || 0} items
+              </p>
+              <span className="mt-0.5 inline-block text-[11px] text-stone-400">
+                Dispatched pieces
+              </span>
+            </button>
           </div>
 
-          {/* Chart Display */}
-          <div className="mt-6">
-            {data?.dailyTrend && data.dailyTrend.length > 0 ? (
-              <div className="relative">
-                {/* Horizontal guide lines */}
-                <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col justify-between h-48 border-b border-stone-200 text-[10px] text-stone-400">
-                  <div className="border-b border-dashed border-stone-100 w-full" />
-                  <div className="border-b border-dashed border-stone-100 w-full" />
-                  <div className="border-b border-dashed border-stone-100 w-full" />
-                </div>
+          {/* Chart Header Info */}
+          <div className="p-6">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <h3 className="text-base font-semibold text-stone-900">
+                  {activeMetric === "revenue" && "Daily sales revenue trajectory"}
+                  {activeMetric === "orders" && "Daily orders frequency"}
+                  {activeMetric === "aov" && "Average transaction value trend"}
+                  {activeMetric === "units" && "Apparel inventory dispatched"}
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Hover across the timeline curve to scrub daily order details and transaction amounts.
+                </p>
+              </div>
 
-                {/* Bars */}
-                <div className="relative flex h-48 w-full items-end gap-1 sm:gap-2">
-                  {data.dailyTrend.map((item, idx) => {
-                    const heightPercent =
-                      maxRevenue > 0
-                        ? Math.max(Math.round((item.revenue / maxRevenue) * 100), 4)
-                        : 4;
-                    const hasSales = item.revenue > 0;
+              {inspectedDay && (
+                <div className="inline-flex items-center gap-2.5 rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-1.5 text-xs text-stone-700">
+                  <span className="font-medium text-stone-500">{inspectedDay.label}:</span>
+                  <span className="font-bold text-[#380712]">
+                    {activeMetric === "revenue" || activeMetric === "aov"
+                      ? formatPrice(inspectedDay.value)
+                      : `${inspectedDay.value} ${activeMetric === "orders" ? "orders" : "items"}`}
+                  </span>
+                  <span className="text-stone-400">
+                    ({inspectedDay.orders} {inspectedDay.orders === 1 ? "order" : "orders"} · {inspectedDay.units} pcs)
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Continuous Spline Area Chart */}
+            <div className="relative mt-6">
+              {/* Grid Lines */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col justify-between h-[180px] border-b border-stone-100 text-[10px] text-stone-300">
+                <div className="border-b border-dashed border-stone-100 w-full" />
+                <div className="border-b border-dashed border-stone-100 w-full" />
+                <div className="border-b border-dashed border-stone-100 w-full" />
+              </div>
+
+              {/* Responsive SVG Chart */}
+              <div className="relative w-full overflow-hidden">
+                <svg
+                  viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                  className="w-full h-52 sm:h-60"
+                  preserveAspectRatio="none"
+                >
+                  <defs>
+                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#380712" stopOpacity="0.18" />
+                      <stop offset="50%" stopColor="#8B2635" stopOpacity="0.06" />
+                      <stop offset="100%" stopColor="#8B2635" stopOpacity="0.00" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Gradient Area Fill */}
+                  {areaPath && (
+                    <path
+                      d={areaPath}
+                      fill="url(#chartGradient)"
+                      className="transition-all duration-300"
+                    />
+                  )}
+
+                  {/* Baseline Axis */}
+                  <line
+                    x1={paddingX}
+                    y1={chartHeight - paddingBottom}
+                    x2={chartWidth - paddingX}
+                    y2={chartHeight - paddingBottom}
+                    stroke="#E5E5E5"
+                    strokeWidth="1"
+                  />
+
+                  {/* Smooth Spline Curve Line */}
+                  {linePath && (
+                    <path
+                      d={linePath}
+                      fill="none"
+                      stroke="#380712"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )}
+
+                  {/* Vertical Crosshair Line when hovering */}
+                  {hoverIndex !== null && svgCoordinates[hoverIndex] && (
+                    <line
+                      x1={svgCoordinates[hoverIndex].x}
+                      y1={paddingTop}
+                      x2={svgCoordinates[hoverIndex].x}
+                      y2={chartHeight - paddingBottom}
+                      stroke="#380712"
+                      strokeWidth="1.5"
+                      strokeDasharray="3 3"
+                      className="opacity-70"
+                    />
+                  )}
+
+                  {/* Highlight Dots for Days with Non-Zero Sales */}
+                  {svgCoordinates.map((pt, i) => {
+                    const isHovered = hoverIndex === i;
+                    const hasData = pt.value > 0;
+                    if (!hasData && !isHovered) return null;
 
                     return (
-                      <div
-                        key={item.date || idx}
-                        onMouseEnter={() => setHoveredDay(item)}
-                        onMouseLeave={() => setHoveredDay(null)}
-                        className="group relative flex flex-1 flex-col items-center h-full justify-end cursor-pointer"
-                      >
-                        {/* Tooltip */}
-                        <div className="pointer-events-none absolute -top-11 z-20 hidden flex-col items-center rounded-lg bg-stone-900 px-2.5 py-1 text-[10px] text-white shadow-md group-hover:flex">
-                          <span className="font-semibold text-[#F5DFC0]">
-                            ₹{item.revenue.toLocaleString("en-IN")}
-                          </span>
-                          <span className="text-stone-300 text-[9px]">
-                            {item.orders} {item.orders === 1 ? "order" : "orders"}
-                          </span>
-                        </div>
-
-                        {/* Bar */}
-                        <div
-                          style={{ height: `${heightPercent}%` }}
-                          className={`w-full rounded-t-sm transition-all duration-150 ${
-                            hasSales
-                              ? "bg-[#380712] group-hover:bg-[#8B2635]"
-                              : "bg-stone-200 group-hover:bg-stone-300"
-                          }`}
+                      <g key={pt.date || i}>
+                        {isHovered && (
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r="8"
+                            fill="#380712"
+                            opacity="0.15"
+                          />
+                        )}
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={isHovered ? "5.5" : "3.5"}
+                          fill="#380712"
+                          stroke="#FFFFFF"
+                          strokeWidth="2"
+                          className="transition-all duration-150"
                         />
-
-                        {/* X-axis label (sampled on mobile) */}
-                        <span className="mt-2 text-[10px] text-stone-400 truncate max-w-[45px] text-center hidden sm:inline">
-                          {item.label}
-                        </span>
-                      </div>
+                      </g>
                     );
                   })}
+                </svg>
+
+                {/* Invisible Hover Overlay Trigger Columns for smooth scrubbing */}
+                <div className="absolute inset-0 flex">
+                  {svgCoordinates.map((pt, idx) => (
+                    <div
+                      key={pt.date || idx}
+                      onMouseEnter={() => setHoverIndex(idx)}
+                      onMouseLeave={() => setHoverIndex(null)}
+                      className="flex-1 h-full cursor-pointer"
+                    />
+                  ))}
                 </div>
               </div>
-            ) : (
-              <div className="flex h-44 items-center justify-center text-xs text-stone-400">
-                No orders recorded for this timeframe.
-              </div>
-            )}
 
-            <div className="mt-3 flex items-center justify-between text-[11px] text-stone-400">
-              <span>₹0</span>
-              <span>Upper: ₹{maxRevenue.toLocaleString("en-IN")}</span>
+              {/* Clean, Well-Spaced X-Axis Dates (Sampled every 5-6 points) */}
+              <div className="mt-2 flex items-center justify-between text-[11px] text-stone-400 font-medium px-2">
+                {svgCoordinates.length > 0 ? (
+                  svgCoordinates
+                    .filter((_, idx) => {
+                      if (svgCoordinates.length <= 7) return true;
+                      const step = Math.ceil(svgCoordinates.length / 6);
+                      return idx % step === 0 || idx === svgCoordinates.length - 1;
+                    })
+                    .map((pt) => (
+                      <span key={pt.date} className="truncate max-w-[60px] text-center">
+                        {pt.label}
+                      </span>
+                    ))
+                ) : (
+                  <span>No data</span>
+                )}
+              </div>
+            </div>
+
+            {/* Performance Summary Sub-Bar */}
+            <div className="mt-6 pt-5 border-t border-stone-100 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div>
+                <span className="text-stone-400 block text-[11px]">Today&apos;s Revenue</span>
+                <span className="font-semibold text-stone-800 text-sm">
+                  {formatPrice(data?.kpis.todayRevenue || 0)}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-stone-400 block text-[11px]">Fulfillment Velocity</span>
+                <span className="font-semibold text-emerald-700 text-sm">
+                  {data?.kpis.fulfillmentRate || 100}% completed
+                </span>
+              </div>
+
+              <div>
+                <span className="text-stone-400 block text-[11px]">Unique Patrons</span>
+                <span className="font-semibold text-stone-800 text-sm">
+                  {data?.kpis.uniqueCustomersCount || 0} customers
+                </span>
+              </div>
+
+              <div>
+                <span className="text-stone-400 block text-[11px]">Active Collections</span>
+                <span className="font-semibold text-stone-800 text-sm">
+                  {data?.kpis.activeCatalogProducts || 0} live pieces
+                </span>
+              </div>
             </div>
           </div>
         </section>
@@ -540,6 +822,69 @@ export default function AdminAnalyticsPage() {
           </section>
         </div>
 
+        {/* Live Recent Transactions Feed */}
+        {data?.recentOrders && data.recentOrders.length > 0 && (
+          <section className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-xs">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-4 mb-4">
+              <div>
+                <h2 className="text-base font-semibold text-stone-900">
+                  Recent transactions feed
+                </h2>
+                <p className="mt-0.5 text-xs text-stone-500">
+                  Latest customer orders and fulfillment progress.
+                </p>
+              </div>
+              <Link
+                href="/admin/orders"
+                className="inline-flex items-center gap-1 text-xs font-medium text-stone-700 hover:text-stone-900"
+              >
+                <span>All orders</span>
+                <ArrowRight size={13} />
+              </Link>
+            </div>
+
+            <div className="divide-y divide-stone-100">
+              {data.recentOrders.map((order) => {
+                const meta = statusMeta[order.orderStatus] || statusMeta.pending;
+                return (
+                  <div
+                    key={order._id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 hover:bg-stone-50/60 px-2 rounded-xl transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 font-serif font-bold text-xs text-[#380712]">
+                        {order.customerName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-stone-900">
+                            {order.customerName}
+                          </p>
+                          <span className="font-mono text-[11px] text-stone-400">
+                            #{order.orderNumber}
+                          </span>
+                        </div>
+                        <p className="text-xs text-stone-500">
+                          {order.itemCount} {order.itemCount === 1 ? "item" : "items"} · {order.paymentMethod === "online" ? "Online Payment" : "Cash on Delivery"} · {formatDateRel(order.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3">
+                      <span className={`inline-flex rounded-md border px-2.5 py-0.5 text-[11px] font-medium capitalize ${meta.badge}`}>
+                        {meta.label}
+                      </span>
+                      <span className="font-semibold text-stone-900 text-sm">
+                        {formatPrice(order.total)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* Top Performing Products Table */}
         <section className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-xs">
           <div className="flex items-center justify-between border-b border-stone-100 pb-4 mb-4">
@@ -604,7 +949,7 @@ export default function AdminAnalyticsPage() {
                         {prod.quantity}
                       </td>
                       <td className="py-3 text-right font-semibold text-stone-900">
-                        ₹{prod.revenue.toLocaleString("en-IN")}
+                        {formatPrice(prod.revenue)}
                       </td>
                       <td className="py-3 pr-2 text-right">
                         {prod.slug ? (

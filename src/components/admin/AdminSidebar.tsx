@@ -16,7 +16,6 @@ import {
   ChevronRight,
   Menu,
   X,
-  Sparkles,
   BarChart3,
 } from "lucide-react";
 
@@ -211,10 +210,7 @@ export default function AdminSidebar() {
             rel="noreferrer"
             className="mt-4 flex items-center justify-between rounded-xl border border-[#D4AF69]/30 bg-[#380712]/80 px-3.5 py-2 text-xs font-medium text-[#F5DFC0] transition-all duration-200 hover:border-[#D4AF69] hover:bg-[#380712] hover:text-white"
           >
-            <span className="flex items-center gap-2">
-              <Sparkles size={13} className="text-[#D4AF69]" />
-              View live boutique
-            </span>
+            <span>View live store</span>
             <ExternalLink size={13} />
           </Link>
         </div>
