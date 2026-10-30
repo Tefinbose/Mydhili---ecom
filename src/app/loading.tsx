@@ -1,11 +1,10 @@
 import Image from "next/image";
-import { Sparkles } from "lucide-react";
 
 export default function RootLoading() {
   return (
     <div className="relative flex min-h-[70vh] w-full flex-col items-center justify-center bg-[#FAF7F2] px-6 text-[#380712]">
       {/* Top hairline luxury progress shimmer */}
-      <div className="fixed inset-x-0 top-0 z-[100] h-[3px] bg-gradient-to-r from-[#8B2635] via-[#D4AF69] to-[#8B2635] animate-pulse" />
+      <div className="fixed inset-x-0 top-0 z-[100] h-[3px] bg-[#380712] animate-pulse" />
 
       {/* Boutique emblem & subtle pulsing aura */}
       <div className="relative flex flex-col items-center">
@@ -40,12 +39,10 @@ export default function RootLoading() {
         </div>
 
         {/* Brand Tagline */}
-        <div className="mt-6 flex items-center gap-2">
-          <Sparkles size={12} className="text-[#D4AF69]" />
+        <div className="mt-6 flex items-center justify-center">
           <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#9A6B35]">
             Mydhili Boutique
           </span>
-          <Sparkles size={12} className="text-[#D4AF69]" />
         </div>
 
         <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[#380712]/50">

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import LoadingScreen from "@/components/common/LoadingScreen";
-import { Sparkles, Play, RefreshCw, Sun, Moon, ArrowLeft } from "lucide-react";
+import { Loader2, Play, RefreshCw, Sun, Moon, ArrowLeft } from "lucide-react";
 
 export default function LoadingDemoPage() {
   const [theme, setTheme] = useState<"royal-maroon" | "cream-ivory">("royal-maroon");
@@ -84,7 +84,6 @@ export default function LoadingDemoPage() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <Sparkles className="text-[#D4AF69]" size={20} />
             <h1 className="font-serif text-3xl text-[#380712]">Mydhili Boutique Loading Page</h1>
           </div>
           <p className="mt-2 text-sm text-stone-600">

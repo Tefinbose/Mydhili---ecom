@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
 import {
   HeartHandshake,
-  Sparkles,
+  Award,
   ShieldCheck,
   Gift,
   ArrowRight,
@@ -16,7 +16,7 @@ const bricolage = Bricolage_Grotesque({
 
 const benefits = [
   {
-    icon: Sparkles,
+    icon: Award,
     title: "Curated with Care",
     description:
       "Thoughtfully selected styles that celebrate Indian fashion and timeless beauty.",

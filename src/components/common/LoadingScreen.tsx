@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
 
 type LoadingScreenProps = {
   /** Message to display beneath the logo */
@@ -98,14 +97,6 @@ export default function LoadingScreen({
         />
       </div>
 
-      {/* Floating golden sparkle stars */}
-      <div className="pointer-events-none absolute inset-0 select-none overflow-hidden">
-        <Sparkles size={16} className="absolute left-[18%] top-[25%] text-[#D4AF69] animate-sparkle-1" />
-        <Sparkles size={13} className="absolute right-[22%] top-[28%] text-[#F5DFC0] animate-sparkle-2" />
-        <Sparkles size={12} className="absolute bottom-[30%] left-[24%] text-[#D4AF69] animate-sparkle-3" />
-        <Sparkles size={16} className="absolute bottom-[26%] right-[20%] text-[#D4AF69] animate-sparkle-1" />
-      </div>
-
       {/* Main loading content card */}
       <div className="relative z-10 flex flex-col items-center px-6 text-center">
         {/* Animated concentric luxury halo rings */}
@@ -188,8 +179,7 @@ export default function LoadingScreen({
 
         {/* Tagline & dynamic phrase */}
         <div className="mt-8 flex flex-col items-center">
-          <div className="flex items-center gap-2">
-            <Sparkles size={11} className="text-[#D4AF69]" />
+          <div className="flex items-center justify-center">
             <span
               className={`text-[11px] font-semibold uppercase tracking-[0.3em] transition-opacity duration-500 sm:text-xs ${
                 isMaroon ? "text-[#F5DFC0]" : "text-[#9A6B35]"
@@ -197,7 +187,6 @@ export default function LoadingScreen({
             >
               {message || PHRASES[phraseIndex]}
             </span>
-            <Sparkles size={11} className="text-[#D4AF69]" />
           </div>
 
           <p

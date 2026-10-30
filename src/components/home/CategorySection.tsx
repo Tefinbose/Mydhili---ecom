@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bricolage_Grotesque } from "next/font/google";
 import {
   Shirt,
-  Sparkles,
+  Crown,
   Flower2,
   ShoppingBag,
   Gem,
@@ -48,7 +48,7 @@ const categoryStyles: Record<string, CategoryStyle> = {
   },
   "ethnic-wear": {
     subtitle: "Celebrate in style",
-    icon: Sparkles,
+    icon: Crown,
     image:
       "https://images.unsplash.com/photo-1583391733956-6c78276477e4?auto=format&fit=crop&w=800&q=85",
   },

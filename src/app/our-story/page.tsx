@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
-import { ArrowRight, Gem, Heart, Sparkles } from "lucide-react";
+import { ArrowRight, Gem, Heart, Flower2 } from "lucide-react";
 
 const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-story", display: "swap" });
 
@@ -10,7 +10,7 @@ const introImage = "https://images.unsplash.com/photo-1490481651871-ab68de25d43d
 
 const values = [
   { icon: Heart, title: "Chosen with care", text: "Every piece is selected with attention to style, detail and the experience it brings." },
-  { icon: Sparkles, title: "Timeless elegance", text: "We believe great style goes beyond trends. It is about feeling confident and comfortable." },
+  { icon: Flower2, title: "Timeless elegance", text: "We believe great style goes beyond trends. It is about feeling confident and comfortable." },
   { icon: Gem, title: "A personal touch", text: "We want every visit to feel welcoming, personal and special." },
 ];
 

@@ -13,7 +13,6 @@ import {
   UserRound,
   ChevronDown,
   ArrowUpRight,
-  Sparkles,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
@@ -119,11 +118,7 @@ export default function Navbar() {
     <>
       {/* Announcement Strip */}
       <div className="bg-[#380712] py-2 text-center text-[10px] font-medium uppercase tracking-[0.22em] text-[#F5DFC0] sm:text-[11px] sm:tracking-[0.25em]">
-        <div className="inline-flex items-center justify-center gap-2">
-          <Sparkles size={11} className="text-[#D4AF69]" />
-          <span>A little tradition, a lot of elegance</span>
-          <Sparkles size={11} className="text-[#D4AF69]" />
-        </div>
+        <span>A little tradition, a lot of elegance</span>
       </div>
 
       <header

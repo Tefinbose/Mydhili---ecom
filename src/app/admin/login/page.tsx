@@ -1,10 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, KeyboardEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LockKeyhole, Mail, Eye, EyeOff, ArrowRight, ExternalLink } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+
+const REMEMBER_EMAIL_KEY = "mydhili_admin_remembered_email";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -12,20 +14,40 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberEmail, setRememberEmail] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [currentYear, setCurrentYear] = useState<number | null>(null);
 
+  // Initialize saved email preference and year
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
+    try {
+      const savedEmail = localStorage.getItem(REMEMBER_EMAIL_KEY);
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setRememberEmail(true);
+      }
+    } catch {
+      // Ignore localStorage read errors in restricted contexts
+    }
   }, []);
+
+  // Monitor Caps Lock state for better user password entry experience
+  function handleKeyEvent(event: KeyboardEvent<HTMLInputElement>) {
+    if (typeof event.getModifierState === "function") {
+      setCapsLockOn(event.getModifierState("CapsLock"));
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
 
-    if (!email.trim() || !password) {
-      setError("Please enter your email and password.");
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
+      setError("Please provide both your email and password.");
       return;
     }
 
@@ -38,7 +60,7 @@ export default function AdminLoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email.trim(),
+          email: cleanEmail,
           password,
         }),
       });
@@ -46,227 +68,207 @@ export default function AdminLoginPage() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        setError(data.message || "Invalid email or password.");
+        setError(data.message || "Invalid email or password. Please verify your credentials.");
         return;
+      }
+
+      // Handle remember email preference
+      try {
+        if (rememberEmail) {
+          localStorage.setItem(REMEMBER_EMAIL_KEY, cleanEmail);
+        } else {
+          localStorage.removeItem(REMEMBER_EMAIL_KEY);
+        }
+      } catch {
+        // Ignore localStorage write errors
       }
 
       router.replace("/admin");
       router.refresh();
     } catch {
-      setError("Unable to connect. Please try again.");
+      setError("Unable to connect to the authentication server. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="min-h-screen bg-[#FAF7F2] text-[#380712]">
-      <div className="grid min-h-screen lg:grid-cols-2">
-        {/* Brand Showcase Panel */}
-        <section className="relative hidden overflow-hidden bg-[#210309] p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-20">
-          {/* Subtle luxury ambient glows */}
-          <div className="pointer-events-none absolute -right-32 -top-32 h-[30rem] w-[30rem] rounded-full bg-[#D4AF69]/15 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-40 -left-24 h-[32rem] w-[32rem] rounded-full bg-[#8B2635]/40 blur-3xl" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF69]/60 to-transparent" />
-
-          <div className="relative z-10 flex items-center justify-between">
-            <Link href="/" className="group flex items-center gap-3">
-              <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-[#D4AF69]/40 bg-[#150105] p-1 shadow-lg transition-transform group-hover:scale-105">
-                <Image
-                  src="/logo/logo.png"
-                  alt="Mydhili Logo"
-                  width={44}
-                  height={44}
-                  className="object-contain"
-                />
-              </div>
-              <div>
-                <span className="font-serif text-lg font-bold tracking-wide text-[#F5DFC0]">
-                  Mydhili
-                </span>
-                <span className="block text-[9px] font-semibold uppercase tracking-[0.28em] text-[#D4AF69]">
-                  Boutique Portal
-                </span>
-              </div>
-            </Link>
-
-            <Link
-              href="/"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs text-[#F5DFC0] backdrop-blur-sm transition hover:bg-white/20"
-            >
-              <span>Visit store</span>
-              <ExternalLink size={13} />
-            </Link>
+    <main className="flex min-h-screen flex-col justify-between bg-[#FAF7F2] text-[#380712] px-4 py-6 sm:px-6 sm:py-8">
+      {/* Top Header Navigation */}
+      <header className="mx-auto flex w-full max-w-5xl items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5 transition hover:opacity-90">
+          <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-[#E7DECE] bg-white p-1 shadow-sm">
+            <Image
+              src="/logo/logo.png"
+              alt="Mydhili Logo"
+              width={30}
+              height={30}
+              className="object-contain"
+              priority
+            />
           </div>
+          <div>
+            <span className="font-serif text-base font-bold tracking-tight text-[#380712]">
+              Mydhili
+            </span>
+            <span className="block text-[9px] font-semibold uppercase tracking-[0.2em] text-[#9A6B35]">
+              Store Administration
+            </span>
+          </div>
+        </Link>
 
-          <div className="relative z-10 max-w-lg">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF69]/40 bg-white/10 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#E6C47A] backdrop-blur-sm">
-              Artisan Heritage &amp; Elegance
+        <Link
+          href="/"
+          className="text-xs font-medium text-stone-600 transition hover:text-[#380712]"
+        >
+          Return to storefront ↗
+        </Link>
+      </header>
+
+      {/* Centered Luxury Card */}
+      <div className="my-auto flex w-full justify-center py-8">
+        <div className="w-full max-w-[420px] rounded-2xl border border-[#E7DECE] bg-white p-7 shadow-[0_4px_24px_rgba(56,7,18,0.04)] sm:p-9">
+          {/* Card Header */}
+          <div className="text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-[#E7DECE] bg-[#FAF7F2] p-2">
+              <Image
+                src="/logo/logo.png"
+                alt="Mydhili Emblem"
+                width={36}
+                height={36}
+                className="object-contain"
+              />
             </div>
 
-            <h1 className="mt-6 font-serif text-4xl font-bold leading-tight tracking-tight sm:text-5xl xl:text-6xl text-[#FAF7F2]">
-              Elegance in every single thread.
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-[#380712] sm:text-[26px]">
+              Boutique Sign In
             </h1>
-
-            <p className="mt-5 max-w-md text-sm font-light leading-relaxed text-white/75 sm:text-base">
-              Securely oversee store orders, curate seasonal saree collections, monitor inventory, and delight your patrons across India.
+            <p className="mt-1.5 text-xs text-stone-500">
+              Enter your credentials to access store operations, products, and analytics.
             </p>
-
-            <div className="mt-8 h-px w-24 bg-gradient-to-r from-[#D4AF69] to-transparent" />
           </div>
 
-          <p className="relative z-10 text-xs tracking-wide text-white/45">
-            © {currentYear ?? ""} Mydhili Collections · All rights reserved.
-          </p>
-        </section>
-
-        {/* Login Form Panel */}
-        <section className="flex min-h-screen items-center justify-center px-6 py-12 sm:px-10">
-          <div className="w-full max-w-md">
-            {/* Mobile Header */}
-            <div className="mb-8 flex items-center justify-between lg:hidden">
-              <Link href="/" className="flex items-center gap-3">
-                <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-[#D4AF69]/40 bg-[#380712] p-1">
-                  <Image
-                    src="/logo/logo.png"
-                    alt="Mydhili Logo"
-                    width={36}
-                    height={36}
-                    className="object-contain"
-                  />
-                </div>
-                <div>
-                  <span className="font-serif text-base font-bold text-[#380712]">
-                    Mydhili
-                  </span>
-                  <span className="block text-[8px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
-                    Admin
-                  </span>
-                </div>
-              </Link>
-
-              <Link
-                href="/"
-                className="text-xs font-semibold text-[#9A6B35] hover:underline"
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            {/* Email Field */}
+            <div>
+              <label
+                htmlFor="email"
+                className="mb-1.5 block text-xs font-semibold text-stone-700"
               >
-                Storefront ↗
-              </Link>
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@mydhili.com"
+                className="h-11 w-full rounded-lg border border-stone-200 bg-white px-3.5 text-sm text-[#380712] outline-none transition placeholder:text-stone-400 focus:border-[#380712] focus:ring-1 focus:ring-[#380712]"
+              />
             </div>
 
-            <div className="mb-8">
-              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#D4AF69]/40 bg-white p-2.5 shadow-sm">
-                <LockKeyhole className="h-6 w-6 text-[#9A6B35]" />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="h-px w-6 bg-[#A27B35]" />
-                <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
-                  Secure Access
-                </p>
-              </div>
-
-              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight text-[#380712] sm:text-4xl">
-                Boutique Sign In
-              </h2>
-
-              <p className="mt-2 text-xs text-stone-500 sm:text-sm">
-                Enter your administrator credentials to access your store control center.
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-1.5 block text-xs font-semibold text-[#380712]"
-                >
-                  Email Address
-                </label>
-
-                <div className="flex items-center gap-3 rounded-xl border border-[#E9DFD2] bg-white px-4 transition focus-within:border-[#9A6B35] focus-within:ring-2 focus-within:ring-[#D4AF69]/20">
-                  <Mail className="h-4 w-4 shrink-0 text-[#9A6B35]" />
-
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="username"
-                    required
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="admin@mydhili.com"
-                    className="h-12 w-full bg-transparent text-sm text-[#380712] outline-none placeholder:text-stone-400"
-                  />
-                </div>
-              </div>
-
-              <div>
+            {/* Password Field */}
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
                 <label
                   htmlFor="password"
-                  className="mb-1.5 block text-xs font-semibold text-[#380712]"
+                  className="block text-xs font-semibold text-stone-700"
                 >
                   Password
                 </label>
-
-                <div className="flex items-center gap-3 rounded-xl border border-[#E9DFD2] bg-white px-4 transition focus-within:border-[#9A6B35] focus-within:ring-2 focus-within:ring-[#D4AF69]/20">
-                  <LockKeyhole className="h-4 w-4 shrink-0 text-[#9A6B35]" />
-
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Enter your security password"
-                    className="h-12 w-full bg-transparent text-sm text-[#380712] outline-none placeholder:text-stone-400"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((value) => !value)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="shrink-0 text-stone-400 hover:text-[#380712]"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
+                {capsLockOn && (
+                  <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                    Caps Lock is ON
+                  </span>
+                )}
               </div>
 
-              {error && (
-                <div
-                  role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-medium text-red-700"
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={handleKeyEvent}
+                  onKeyUp={handleKeyEvent}
+                  placeholder="Enter your password"
+                  className="h-11 w-full rounded-lg border border-stone-200 bg-white pl-3.5 pr-10 text-sm text-[#380712] outline-none transition placeholder:text-stone-400 focus:border-[#380712] focus:ring-1 focus:ring-[#380712]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 transition hover:text-stone-700"
                 >
-                  {error}
-                </div>
-              )}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-[#380712] px-6 text-sm font-semibold text-[#F5DFC0] shadow-md transition hover:bg-[#520A1A] disabled:cursor-not-allowed disabled:opacity-60"
+            {/* Remember Email Toggle */}
+            <div className="flex items-center gap-2 pt-0.5">
+              <input
+                id="remember"
+                type="checkbox"
+                checked={rememberEmail}
+                onChange={(e) => setRememberEmail(e.target.checked)}
+                className="h-4 w-4 rounded border-stone-300 text-[#380712] accent-[#380712] focus:ring-0 focus:ring-offset-0"
+              />
+              <label
+                htmlFor="remember"
+                className="cursor-pointer text-xs font-normal text-stone-600 select-none"
               >
-                {loading ? "Authenticating..." : "Sign In to Admin"}
-                {!loading && <ArrowRight className="h-4 w-4 text-[#D4AF69]" />}
-              </button>
-            </form>
+                Remember email on this browser
+              </label>
+            </div>
 
-            <p className="mt-8 text-center text-[11px] leading-relaxed text-stone-400">
-              Mydhili Collections boutique administration system.
-              <br />
-              Authorized store managers and personnel only.
+            {/* Error Feedback */}
+            {error && (
+              <div
+                role="alert"
+                className="rounded-lg border border-rose-200 bg-rose-50/80 p-3 text-xs font-medium text-rose-800"
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#380712] px-4 text-sm font-semibold text-[#FAF7F2] shadow-sm transition hover:bg-[#27040B] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin text-[#D4AF69]" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                <span>Sign In to Boutique</span>
+              )}
+            </button>
+          </form>
+
+          {/* Security Notice */}
+          <div className="mt-6 border-t border-stone-100 pt-4 text-center">
+            <p className="text-[11px] text-stone-400">
+              Protected boutique management portal · Session authenticated
             </p>
           </div>
-        </section>
+        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="mx-auto w-full max-w-5xl text-center text-xs text-stone-400">
+        © {currentYear ?? ""} Mydhili Collections. All rights reserved.
+      </footer>
     </main>
   );
 }
