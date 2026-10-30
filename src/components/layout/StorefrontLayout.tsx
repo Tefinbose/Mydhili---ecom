@@ -1,11 +1,12 @@
 
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
-export default function StorefrontLayout({
+function StorefrontLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -20,8 +21,28 @@ export default function StorefrontLayout({
   return (
     <>
       <Navbar />
-      <main className="min-h-screen">{children}</main>
+      <main>{children}</main>
       <Footer />
     </>
+  );
+}
+
+export default function StorefrontLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#FAF7F2]">
+          {children}
+        </div>
+      }
+    >
+      <StorefrontLayoutContent>
+        {children}
+      </StorefrontLayoutContent>
+    </Suspense>
   );
 }

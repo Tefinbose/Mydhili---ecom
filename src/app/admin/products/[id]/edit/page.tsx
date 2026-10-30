@@ -1,57 +1,48 @@
+
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ArrowLeft,
+  Loader2,
   Plus,
-  Trash2,
   Save,
-  RefreshCw,
-  ImagePlus,
-  ExternalLink,
-  AlertTriangle,
+  Trash2,
 } from "lucide-react";
+
+type Variant = {
+  sku: string;
+  size: string;
+  color: string;
+  stock: number;
+};
 
 type Category = {
   _id: string;
   name: string;
 };
 
-type Variant = {
-  sku: string;
-  size: string;
-  color: string;
-  stock: number | string;
-};
-
-type ProductData = {
+type Product = {
+  _id: string;
   name: string;
-  slug: string;
   description: string;
-  shortDescription: string;
-  category: string;
-  price: number | string;
-  compareAtPrice: number | string;
+  shortDescription?: string;
+  category: string | { _id: string; name: string };
+  price: number;
+  compareAtPrice?: number;
   images: string[];
   variants: Variant[];
   isFeatured: boolean;
   isActive: boolean;
 };
 
-const emptyProduct: ProductData = {
-  name: "",
-  slug: "",
-  description: "",
-  shortDescription: "",
-  category: "",
-  price: "",
-  compareAtPrice: "",
-  images: [],
-  variants: [],
-  isFeatured: false,
-  isActive: true,
+const emptyVariant: Variant = {
+  sku: "",
+  size: "",
+  color: "",
+  stock: 0,
 };
 
 export default function EditProductPage() {
@@ -59,111 +50,98 @@ export default function EditProductPage() {
   const router = useRouter();
   const productId = params.id;
 
-  const [form, setForm] = useState<ProductData>(emptyProduct);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [imageInput, setImageInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const loadProduct = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    shortDescription: "",
+    category: "",
+    price: "",
+    compareAtPrice: "",
+    images: "",
+    variants: [{ ...emptyVariant }],
+    isFeatured: false,
+    isActive: true,
+  });
 
+  useEffect(() => {
+    if (productId) loadProduct();
+  }, [productId]);
+
+  async function loadProduct() {
     try {
+      setLoading(true);
+      setError("");
+
       const [productResponse, categoriesResponse] = await Promise.all([
-        fetch(`/api/admin/products/${productId}`, {
-          cache: "no-store",
-        }),
-        fetch("/api/admin/products", {
-          cache: "no-store",
-        }),
+        fetch(`/api/admin/products/${productId}`, { cache: "no-store" }),
+        fetch("/api/admin/categories", { cache: "no-store" }),
       ]);
 
       const productData = await productResponse.json();
       const categoriesData = await categoriesResponse.json();
 
-      if (!productResponse.ok || !productData.success) {
+      if (!productResponse.ok || !productData.success || !productData.product) {
         throw new Error(productData.message || "Unable to load product.");
       }
 
-      if (!categoriesResponse.ok || !categoriesData.success) {
-        throw new Error(
-          categoriesData.message || "Unable to load categories."
-        );
-      }
+      const product: Product = productData.product;
 
-      const product = productData.product;
-
-      setCategories(categoriesData.categories || []);
+      const categoryId =
+        typeof product.category === "string"
+          ? product.category
+          : product.category?._id || "";
 
       setForm({
         name: product.name || "",
-        slug: product.slug || "",
         description: product.description || "",
         shortDescription: product.shortDescription || "",
-        category:
-          typeof product.category === "object"
-            ? product.category?._id || ""
-            : product.category || "",
-        price: product.price ?? "",
-        compareAtPrice: product.compareAtPrice ?? "",
-        images: product.images || [],
-        variants: (product.variants || []).map((variant: Variant) => ({
-          sku: variant.sku || "",
-          size: variant.size || "",
-          color: variant.color || "",
-          stock: variant.stock ?? 0,
-        })),
+        category: categoryId,
+        price: String(product.price ?? ""),
+        compareAtPrice:
+          product.compareAtPrice != null
+            ? String(product.compareAtPrice)
+            : "",
+        images: (product.images || []).join("\n"),
+        variants:
+          product.variants?.length > 0
+            ? product.variants.map((variant) => ({
+                sku: variant.sku || "",
+                size: variant.size || "",
+                color: variant.color || "",
+                stock: Number(variant.stock || 0),
+              }))
+            : [{ ...emptyVariant }],
         isFeatured: Boolean(product.isFeatured),
-        isActive: Boolean(product.isActive),
+        isActive: product.isActive !== false,
       });
+
+      if (categoriesResponse.ok && categoriesData.success) {
+        setCategories(categoriesData.categories || []);
+      } else {
+        throw new Error(
+          categoriesData.message || "Unable to load product categories."
+        );
+      }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Unable to load product."
+        err instanceof Error ? err.message : "Something went wrong."
       );
     } finally {
       setLoading(false);
     }
-  }, [productId]);
+  }
 
-  useEffect(() => {
-    loadProduct();
-  }, [loadProduct]);
-
-  function updateField<K extends keyof ProductData>(
-    field: K,
-    value: ProductData[K]
+  function updateField(
+    field: keyof typeof form,
+    value: string | boolean
   ) {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-  }
-
-  function addImage() {
-    const image = imageInput.trim();
-    if (!image) return;
-
-    updateField("images", [...form.images, image]);
-    setImageInput("");
-  }
-
-  function removeImage(index: number) {
-    updateField(
-      "images",
-      form.images.filter((_, imageIndex) => imageIndex !== index)
-    );
-  }
-
-  function addVariant() {
-    updateField("variants", [
-      ...form.variants,
-      { sku: "", size: "", color: "", stock: 0 },
-    ]);
+    setForm((current) => ({ ...current, [field]: value }));
   }
 
   function updateVariant(
@@ -171,45 +149,85 @@ export default function EditProductPage() {
     field: keyof Variant,
     value: string | number
   ) {
-    const updated = [...form.variants];
-    updated[index] = {
-      ...updated[index],
-      [field]: value,
-    };
+    setForm((current) => ({
+      ...current,
+      variants: current.variants.map((variant, i) =>
+        i === index ? { ...variant, [field]: value } : variant
+      ),
+    }));
+  }
 
-    updateField("variants", updated);
+  function addVariant() {
+    setForm((current) => ({
+      ...current,
+      variants: [...current.variants, { ...emptyVariant }],
+    }));
   }
 
   function removeVariant(index: number) {
-    updateField(
-      "variants",
-      form.variants.filter((_, variantIndex) => variantIndex !== index)
-    );
+    setForm((current) => ({
+      ...current,
+      variants: current.variants.filter((_, i) => i !== index),
+    }));
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaving(true);
     setError("");
     setSuccess("");
 
+    if (!form.name.trim() || !form.category || !form.price) {
+      setError("Please complete the product name, category and price.");
+      return;
+    }
+
+    const variants = form.variants
+      .filter(
+        (variant) =>
+          variant.sku.trim() ||
+          variant.size.trim() ||
+          variant.color.trim()
+      );
+
+    const incompleteVariant = variants.some(
+      (variant) =>
+        !variant.sku.trim() ||
+        !variant.size.trim() ||
+        !variant.color.trim() ||
+        !Number.isFinite(Number(variant.stock)) ||
+        Number(variant.stock) < 0
+    );
+
+    if (incompleteVariant) {
+      setError("Complete the SKU, size, color and valid stock for each variant.");
+      return;
+    }
+
     try {
+      setSaving(true);
+
       const response = await fetch(`/api/admin/products/${productId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          name: form.name.trim(),
+          description: form.description,
+          shortDescription: form.shortDescription,
+          category: form.category,
           price: Number(form.price),
-          compareAtPrice:
-            form.compareAtPrice === "" || form.compareAtPrice == null
-              ? undefined
-              : Number(form.compareAtPrice),
-          variants: form.variants.map((v) => ({
-            ...v,
-            stock: Number(v.stock || 0),
+          compareAtPrice: form.compareAtPrice
+            ? Number(form.compareAtPrice)
+            : undefined,
+          images: form.images
+            .split("\n")
+            .map((image) => image.trim())
+            .filter(Boolean),
+          variants: variants.map((variant) => ({
+            ...variant,
+            stock: Number(variant.stock),
           })),
+          isFeatured: form.isFeatured,
+          isActive: form.isActive,
         }),
       });
 
@@ -221,194 +239,116 @@ export default function EditProductPage() {
 
       setSuccess("Product updated successfully.");
 
-      if (data.product?.slug) {
-        setForm((prev) => ({ ...prev, slug: data.product.slug }));
-      }
-
       setTimeout(() => {
         router.push("/admin/products");
         router.refresh();
-      }, 1000);
+      }, 800);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Unable to update product."
+        err instanceof Error ? err.message : "Something went wrong."
       );
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDelete() {
-    setDeleting(true);
-    setError("");
-
-    try {
-      const response = await fetch(`/api/admin/products/${productId}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Unable to delete product.");
-      }
-
-      router.push("/admin/products");
-      router.refresh();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Unable to delete product."
-      );
-      setShowDeleteModal(false);
-      setDeleting(false);
-    }
-  }
-
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center gap-3 text-sm text-stone-500">
-        <RefreshCw size={18} className="animate-spin text-[#9A6B35]" />
-        Loading product details...
-      </div>
-    );
-  }
-
-  if (error && !form.name) {
-    return (
-      <div className="min-h-screen px-5 py-10 sm:px-8">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-red-200 bg-red-50 p-6">
-          <p className="text-sm font-medium text-red-700">{error}</p>
-          <Link
-            href="/admin/products"
-            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#380712] hover:underline"
-          >
-            <ArrowLeft size={16} />
-            Back to products
-          </Link>
-        </div>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="animate-spin text-[#9A6B35]" size={30} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-6 lg:px-10">
+    <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-8">
       <div className="mx-auto max-w-5xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <Link
-            href="/admin/products"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#8B2635] transition hover:text-[#380712]"
-          >
-            <ArrowLeft size={16} />
-            Back to products
-          </Link>
+        <Link
+          href="/admin/products"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-stone-600 hover:text-[#380712]"
+        >
+          <ArrowLeft size={17} />
+          Back to Products
+        </Link>
 
-          <div className="flex items-center gap-3">
-            {form.slug && (
-              <Link
-                href={`/products/${form.slug}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#D4AF69]/40 bg-white px-3.5 py-2 text-xs font-semibold text-[#380712] shadow-sm transition hover:bg-[#FAF3E8]"
-              >
-                <ExternalLink size={14} className="text-[#9A6B35]" />
-                View on website
-              </Link>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setShowDeleteModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-xs font-semibold text-red-600 shadow-sm transition hover:bg-red-50"
-            >
-              <Trash2 size={14} />
-              Delete product
-            </button>
-          </div>
-        </div>
-
-        <div className="mb-8 mt-5">
+        <div className="mb-8">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
-            Product management
+            Product Management
           </p>
-          <h1 className="mt-2 font-serif text-3xl font-semibold text-[#380712] sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-serif text-[#380712]">
             Edit Product
           </h1>
           <p className="mt-2 text-sm text-stone-500">
-            Update product details, pricing, gallery images, and inventory variants.
+            Update your product information, images and inventory.
           </p>
         </div>
 
         {error && (
-          <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
         {success && (
-          <div role="status" className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+          <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
             {success}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-7">
-          <section className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm sm:p-7">
-            <h2 className="font-serif text-xl font-semibold text-[#380712]">
-              Basic information
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-5 text-lg font-semibold text-[#380712]">
+              Basic Information
             </h2>
 
-            <div className="mt-6 grid gap-5">
+            <div className="space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#380712]">
-                  Product name *
+                <label className="mb-2 block text-sm font-medium">
+                  Product Name *
                 </label>
                 <input
                   required
                   value={form.name}
                   onChange={(e) => updateField("name", e.target.value)}
-                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-3 text-sm text-[#380712] outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                  className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#380712]">
-                  Short description
+                <label className="mb-2 block text-sm font-medium">
+                  Short Description
                 </label>
-                <textarea
-                  rows={2}
+                <input
                   value={form.shortDescription}
                   onChange={(e) =>
                     updateField("shortDescription", e.target.value)
                   }
-                  placeholder="A concise summary for catalog cards"
-                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-3 text-sm text-[#380712] outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                  className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#380712]">
-                  Full description *
+                <label className="mb-2 block text-sm font-medium">
+                  Full Description *
                 </label>
                 <textarea
                   required
-                  rows={6}
+                  rows={5}
                   value={form.description}
-                  onChange={(e) =>
-                    updateField("description", e.target.value)
-                  }
-                  placeholder="Full product story, fabric specifications, craftsmanship, and styling notes..."
-                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-3 text-sm text-[#380712] outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                  onChange={(e) => updateField("description", e.target.value)}
+                  className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#380712]">
+                <label className="mb-2 block text-sm font-medium">
                   Category *
                 </label>
                 <select
                   required
                   value={form.category}
                   onChange={(e) => updateField("category", e.target.value)}
-                  className="w-full rounded-xl border border-[#E9DFD2] bg-white px-4 py-3 text-sm text-[#380712] outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                  className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 outline-none focus:border-[#9A6B35]"
                 >
                   <option value="">Select category</option>
                   {categories.map((category) => (
@@ -421,15 +361,15 @@ export default function EditProductPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm sm:p-7">
-            <h2 className="font-serif text-xl font-semibold text-[#380712]">
+          <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-5 text-lg font-semibold text-[#380712]">
               Pricing
             </h2>
 
-            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#380712]">
-                  Selling price (₹) *
+                <label className="mb-2 block text-sm font-medium">
+                  Selling Price (₹) *
                 </label>
                 <input
                   required
@@ -438,13 +378,13 @@ export default function EditProductPage() {
                   step="0.01"
                   value={form.price}
                   onChange={(e) => updateField("price", e.target.value)}
-                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-3 text-sm text-[#380712] outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                  className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#380712]">
-                  Compare-at price (₹)
+                <label className="mb-2 block text-sm font-medium">
+                  Compare-at Price (₹)
                 </label>
                 <input
                   type="number"
@@ -454,272 +394,153 @@ export default function EditProductPage() {
                   onChange={(e) =>
                     updateField("compareAtPrice", e.target.value)
                   }
-                  placeholder="Original price before discount"
-                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-3 text-sm text-[#380712] outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                  className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
                 />
               </div>
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm sm:p-7">
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-              <div>
-                <h2 className="font-serif text-xl font-semibold text-[#380712]">
-                  Product images
-                </h2>
-                <p className="mt-1 text-xs text-stone-500">
-                  Add image URLs (relative paths like /products/... or full https:// links).
-                </p>
-              </div>
-              <ImagePlus size={22} className="text-[#9A6B35]" />
-            </div>
-
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <input
-                value={imageInput}
-                onChange={(e) => setImageInput(e.target.value)}
-                placeholder="Paste product image URL or path"
-                className="min-w-0 flex-1 rounded-xl border border-[#E9DFD2] px-4 py-3 text-sm outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
-              />
-              <button
-                type="button"
-                onClick={addImage}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FAF3E8] px-5 py-3 text-sm font-semibold text-[#380712] transition hover:bg-[#F1E5D4]"
-              >
-                <Plus size={16} />
-                Add image
-              </button>
-            </div>
-
-            {form.images.length > 0 && (
-              <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                {form.images.map((image, index) => (
-                  <div key={`${image}-${index}`} className="relative rounded-xl border border-[#E9DFD2] p-1.5">
-                    <div className="aspect-square overflow-hidden rounded-lg bg-[#FAF7F2]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={image}
-                        alt={`Product image ${index + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      aria-label={`Remove image ${index + 1}`}
-                      className="absolute right-3 top-3 rounded-full bg-white p-1.5 text-red-600 shadow-md transition hover:bg-red-50"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    <p className="mt-1.5 truncate text-xs text-stone-400">
-                      Image {index + 1}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
+          <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-2 text-lg font-semibold text-[#380712]">
+              Product Images
+            </h2>
+            <p className="mb-4 text-sm text-stone-500">
+              Add one image URL per line.
+            </p>
+            <textarea
+              rows={5}
+              value={form.images}
+              onChange={(e) => updateField("images", e.target.value)}
+              placeholder={"https://example.com/product-image.jpg"}
+              className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
+            />
           </section>
 
-          <section className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm sm:p-7">
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="font-serif text-xl font-semibold text-[#380712]">
-                  Product variants
+                <h2 className="text-lg font-semibold text-[#380712]">
+                  Product Variants
                 </h2>
-                <p className="mt-1 text-xs text-stone-500">
-                  Manage sizes, colors, and stock levels. SKU will be auto-generated if left blank.
+                <p className="mt-1 text-sm text-stone-500">
+                  Manage SKU, size, color and available stock.
                 </p>
               </div>
-
               <button
                 type="button"
                 onClick={addVariant}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D4AF69] px-4 py-2 text-sm font-semibold text-[#380712] transition hover:bg-[#FAF3E8]"
+                className="inline-flex items-center gap-2 rounded-lg border border-[#9A6B35] px-4 py-2 text-sm font-medium text-[#9A6B35] hover:bg-[#FAF7F2]"
               >
                 <Plus size={16} />
-                Add variant
+                Add Variant
               </button>
             </div>
 
-            {form.variants.length === 0 ? (
-              <p className="mt-6 rounded-xl bg-[#FAF7F2] p-5 text-center text-sm text-stone-500">
-                No variants configured. Click &ldquo;Add variant&rdquo; to add size and color options.
-              </p>
-            ) : (
-              <div className="mt-6 space-y-4">
-                {form.variants.map((variant, index) => (
-                  <div
-                    key={index}
-                    className="grid gap-3 rounded-xl border border-[#EEE7DE] bg-[#FCFAF7] p-4 sm:grid-cols-2 lg:grid-cols-5"
+            <div className="space-y-4">
+              {form.variants.map((variant, index) => (
+                <div
+                  key={index}
+                  className="grid gap-3 rounded-lg border border-stone-200 p-4 sm:grid-cols-2 lg:grid-cols-5"
+                >
+                  <input
+                    value={variant.sku}
+                    onChange={(e) =>
+                      updateVariant(index, "sku", e.target.value)
+                    }
+                    placeholder="SKU"
+                    className="rounded-lg border border-stone-300 px-3 py-2"
+                  />
+                  <input
+                    value={variant.size}
+                    onChange={(e) =>
+                      updateVariant(index, "size", e.target.value)
+                    }
+                    placeholder="Size"
+                    className="rounded-lg border border-stone-300 px-3 py-2"
+                  />
+                  <input
+                    value={variant.color}
+                    onChange={(e) =>
+                      updateVariant(index, "color", e.target.value)
+                    }
+                    placeholder="Color"
+                    className="rounded-lg border border-stone-300 px-3 py-2"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    value={variant.stock}
+                    onChange={(e) =>
+                      updateVariant(index, "stock", Number(e.target.value))
+                    }
+                    placeholder="Stock"
+                    className="rounded-lg border border-stone-300 px-3 py-2"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeVariant(index)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                   >
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-stone-600">
-                        SKU (optional)
-                      </label>
-                      <input
-                        value={variant.sku}
-                        onChange={(e) =>
-                          updateVariant(index, "sku", e.target.value)
-                        }
-                        placeholder="Auto-generated if empty"
-                        className="w-full rounded-lg border border-[#E9DFD2] bg-white px-3 py-2 text-sm outline-none transition focus:border-[#9A6B35]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-stone-600">
-                        Size *
-                      </label>
-                      <input
-                        value={variant.size}
-                        onChange={(e) =>
-                          updateVariant(index, "size", e.target.value)
-                        }
-                        placeholder="S, M, L, XL, Free..."
-                        className="w-full rounded-lg border border-[#E9DFD2] bg-white px-3 py-2 text-sm outline-none transition focus:border-[#9A6B35]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-stone-600">
-                        Color *
-                      </label>
-                      <input
-                        value={variant.color}
-                        onChange={(e) =>
-                          updateVariant(index, "color", e.target.value)
-                        }
-                        placeholder="Maroon, Gold..."
-                        className="w-full rounded-lg border border-[#E9DFD2] bg-white px-3 py-2 text-sm outline-none transition focus:border-[#9A6B35]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-stone-600">
-                        Stock *
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={variant.stock}
-                        onChange={(e) =>
-                          updateVariant(index, "stock", e.target.value)
-                        }
-                        className="w-full rounded-lg border border-[#E9DFD2] bg-white px-3 py-2 text-sm outline-none transition focus:border-[#9A6B35]"
-                      />
-                    </div>
-
-                    <div className="flex items-end">
-                      <button
-                        type="button"
-                        onClick={() => removeVariant(index)}
-                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
-                      >
-                        <Trash2 size={14} />
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                    <Trash2 size={15} />
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
           </section>
 
-          <section className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm sm:p-7">
-            <h2 className="font-serif text-xl font-semibold text-[#380712]">
-              Product visibility
+          <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-5 text-lg font-semibold text-[#380712]">
+              Store Settings
             </h2>
 
-            <div className="mt-5 space-y-4">
-              <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-stone-700">
-                <input
-                  type="checkbox"
-                  checked={form.isActive}
-                  onChange={(e) => updateField("isActive", e.target.checked)}
-                  className="h-4 w-4 rounded accent-[#380712]"
-                />
-                Active — product is visible and purchasable in the boutique store
-              </label>
-
-              <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-stone-700">
+            <div className="space-y-4">
+              <label className="flex items-center gap-3 text-sm">
                 <input
                   type="checkbox"
                   checked={form.isFeatured}
                   onChange={(e) =>
                     updateField("isFeatured", e.target.checked)
                   }
-                  className="h-4 w-4 rounded accent-[#380712]"
+                  className="h-4 w-4 accent-[#380712]"
                 />
-                Featured — highlight on Homepage featured collections
+                Show this product as featured
+              </label>
+
+              <label className="flex items-center gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) => updateField("isActive", e.target.checked)}
+                  className="h-4 w-4 accent-[#380712]"
+                />
+                Product is active in the store
               </label>
             </div>
           </section>
 
-          <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
+          <div className="flex flex-wrap justify-end gap-3 pb-8">
             <Link
               href="/admin/products"
-              className="inline-flex items-center justify-center rounded-xl border border-[#E9DFD2] bg-white px-6 py-3 text-sm font-semibold text-stone-600 transition hover:bg-[#FAF7F2]"
+              className="rounded-lg border border-stone-300 px-5 py-3 text-sm font-medium text-stone-700 hover:bg-white"
             >
               Cancel
             </Link>
-
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#380712] px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#5A1020] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#380712] px-6 py-3 text-sm font-medium text-white hover:bg-[#54101f] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? (
-                <RefreshCw size={16} className="animate-spin text-[#D4AF69]" />
+                <Loader2 size={17} className="animate-spin" />
               ) : (
-                <Save size={16} />
+                <Save size={17} />
               )}
-              {saving ? "Saving changes..." : "Save changes"}
+              {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>
       </div>
-
-      {/* Delete confirmation modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-[#E9DFD2] bg-white p-6 shadow-2xl">
-            <div className="flex items-center gap-3 text-red-600">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
-                <AlertTriangle size={20} />
-              </div>
-              <h3 className="font-serif text-lg font-semibold text-[#380712]">
-                Delete product?
-              </h3>
-            </div>
-
-            <p className="mt-3 text-sm text-stone-600">
-              Are you sure you want to delete <span className="font-semibold text-stone-900">&ldquo;{form.name}&rdquo;</span>? This action cannot be undone.
-            </p>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                disabled={deleting}
-                className="rounded-xl border border-[#E9DFD2] px-4 py-2 text-sm font-semibold text-stone-600 hover:bg-stone-50"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
-              >
-                {deleting && <RefreshCw size={14} className="animate-spin" />}
-                {deleting ? "Deleting..." : "Yes, delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

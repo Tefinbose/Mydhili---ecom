@@ -1,176 +1,128 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
-import { requireAdmin } from "@/lib/require-admin";
-import {connectToDatabase} from "@/lib/mongodb";
-import Product from "@/models/Product";
-import Category from "@/models/Category";
-
-function createSlug(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+import { connectToDatabase } from "@/lib/mongodb";
+import { getAdminSession } from "@/lib/auth";
+import Order from "@/models/Order";
 
 export async function GET() {
   try {
-    await requireAdmin();
+    const session = await getAdminSession();
+
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     await connectToDatabase();
 
-    const [products, categories] = await Promise.all([
-      Product.find({})
-        .populate("category", "name")
-        .sort({ createdAt: -1 })
-        .lean(),
-      Category.find({ isActive: true })
-        .select("name")
-        .sort({ name: 1 })
-        .lean(),
-    ]);
+    const orders = await Order.find({})
+      .sort({ createdAt: -1 })
+      .lean();
 
     return NextResponse.json({
       success: true,
-      products,
-      categories,
+      orders: JSON.parse(JSON.stringify(orders)),
     });
   } catch (error) {
-    console.error("Fetch admin products error:", error);
+    console.error("GET ORDERS ERROR:", error);
 
     return NextResponse.json(
-      { success: false, message: "Unable to fetch products." },
+      { success: false, message: "Failed to load orders" },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   try {
-    await requireAdmin();
-    await connectToDatabase();
+    const session = await getAdminSession();
+
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
     const body = await request.json();
+    const { orderId, orderStatus, paymentStatus } = body;
 
-    const name = String(body.name ?? "").trim();
-    const description = String(body.description ?? "").trim();
-    const shortDescription = String(body.shortDescription ?? "").trim();
-    const categoryId = String(body.category ?? "").trim();
-    const price = Number(body.price);
-    const compareAtPrice =
-      body.compareAtPrice === "" || body.compareAtPrice == null
-        ? undefined
-        : Number(body.compareAtPrice);
-
-    const images = Array.isArray(body.images)
-      ? body.images
-          .map((image: unknown) => String(image).trim())
-          .filter(Boolean)
-      : [];
-
-    const variants = Array.isArray(body.variants)
-      ? body.variants.map((variant: Record<string, unknown>) => ({
-          sku: String(variant.sku ?? "").trim(),
-          size: String(variant.size ?? "").trim(),
-          color: String(variant.color ?? "").trim(),
-          stock: Number(variant.stock ?? 0),
-        }))
-      : [];
-
-    if (!name || !description || !categoryId) {
+    if (!orderId) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Name, description, and category are required.",
-        },
+        { success: false, message: "Order ID is required" },
         { status: 400 }
       );
     }
 
-    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+    const updates: Record<string, string> = {};
+
+    const validOrderStatuses = [
+      "pending",
+      "confirmed",
+      "processing",
+      "shipped",
+      "delivered",
+      "cancelled",
+    ];
+
+    const validPaymentStatuses = ["pending", "paid", "failed"];
+
+    if (orderStatus !== undefined) {
+      if (!validOrderStatuses.includes(orderStatus)) {
+        return NextResponse.json(
+          { success: false, message: "Invalid order status" },
+          { status: 400 }
+        );
+      }
+
+      updates.orderStatus = orderStatus;
+    }
+
+    if (paymentStatus !== undefined) {
+      if (!validPaymentStatuses.includes(paymentStatus)) {
+        return NextResponse.json(
+          { success: false, message: "Invalid payment status" },
+          { status: 400 }
+        );
+      }
+
+      updates.paymentStatus = paymentStatus;
+    }
+
+    if (Object.keys(updates).length === 0) {
       return NextResponse.json(
-        { success: false, message: "Please select a valid category." },
+        { success: false, message: "No changes provided" },
         { status: 400 }
       );
     }
 
-    if (!Number.isFinite(price) || price < 0) {
-      return NextResponse.json(
-        { success: false, message: "Please enter a valid product price." },
-        { status: 400 }
-      );
-    }
+    await connectToDatabase();
 
-    if (
-      compareAtPrice !== undefined &&
-      (!Number.isFinite(compareAtPrice) || compareAtPrice < price)
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Compare-at price must be greater than or equal to the selling price.",
-        },
-        { status: 400 }
-      );
-    }
+    const order = await Order.findByIdAndUpdate(
+      orderId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).lean();
 
-    if (
-      variants.some(
-        (variant: { stock: number }) =>
-          !Number.isInteger(variant.stock) || variant.stock < 0
-      )
-    ) {
+    if (!order) {
       return NextResponse.json(
-        { success: false, message: "Variant stock must be a non-negative whole number." },
-        { status: 400 }
-      );
-    }
-
-    const categoryExists = await Category.findById(categoryId);
-
-    if (!categoryExists) {
-      return NextResponse.json(
-        { success: false, message: "Selected category was not found." },
+        { success: false, message: "Order not found" },
         { status: 404 }
       );
     }
 
-    const baseSlug = createSlug(name);
-    let slug = baseSlug;
-    let suffix = 1;
-
-    while (await Product.findOne({ slug })) {
-      slug = `${baseSlug}-${suffix}`;
-      suffix += 1;
-    }
-
-    const product = await Product.create({
-      name,
-      slug,
-      description,
-      shortDescription,
-      category: categoryId,
-      price,
-      compareAtPrice,
-      images,
-      variants,
-      isFeatured: Boolean(body.isFeatured),
-      isActive: body.isActive !== false,
+    return NextResponse.json({
+      success: true,
+      message: "Order updated successfully",
+      order: JSON.parse(JSON.stringify(order)),
     });
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Product created successfully.",
-        product,
-      },
-      { status: 201 }
-    );
   } catch (error) {
-    console.error("Create product error:", error);
+    console.error("UPDATE ORDER ERROR:", error);
 
     return NextResponse.json(
-      { success: false, message: "Unable to create product." },
+      { success: false, message: "Failed to update order" },
       { status: 500 }
     );
   }

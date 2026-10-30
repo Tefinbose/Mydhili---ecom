@@ -1,136 +1,136 @@
 
-import { connection, NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getAdminSession } from "@/lib/auth";
 import Order from "@/models/Order";
 
-const allowedStatuses = [
-  "PENDING",
-  "CONFIRMED",
-  "PROCESSING",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELLED",
-];
+const orderStatuses = [
+  "pending",
+  "confirmed",
+  "processing",
+  "shipped",
+  "delivered",
+  "cancelled",
+] as const;
 
-export async function GET(request: NextRequest) {
-  // This endpoint depends on the incoming request and its cookies.
-  await connection();
+const paymentStatuses = ["pending", "paid", "failed"] as const;
 
+export async function GET() {
   try {
-    const adminSession = await getAdminSession();
+    const session = await getAdminSession();
 
-    if (!adminSession) {
+    if (!session) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        { success: false, message: "Unauthorized access." },
         { status: 401 }
       );
     }
 
     await connectToDatabase();
 
-    const { searchParams } = new URL(request.url);
-
-    const page = Math.max(
-      1,
-      Number.parseInt(searchParams.get("page") || "1", 10) || 1
-    );
-
-    const limit = Math.min(
-      100,
-      Math.max(
-        1,
-        Number.parseInt(searchParams.get("limit") || "10", 10) || 10
-      )
-    );
-
-    const search = (searchParams.get("search") || "").trim();
-    const status = (searchParams.get("status") || "").toUpperCase();
-
-    const filter: Record<string, unknown> = {};
-
-    if (status && status !== "ALL") {
-      if (!allowedStatuses.includes(status)) {
-        return NextResponse.json(
-          { success: false, message: "Invalid order status" },
-          { status: 400 }
-        );
-      }
-
-      filter.status = status;
-    }
-
-    if (search) {
-      // Escape regex characters so search text is treated literally.
-      const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const searchRegex = new RegExp(safeSearch, "i");
-
-      filter.$or = [
-        { orderNumber: searchRegex },
-        { "customer.name": searchRegex },
-        { "customer.email": searchRegex },
-        { "shippingAddress.name": searchRegex },
-        { "shippingAddress.email": searchRegex },
-      ];
-    }
-
-    const skip = (page - 1) * limit;
-
-    const [orders, totalOrders, pendingOrders, paidOrders, codOrders] =
-      await Promise.all([
-        Order.find(filter)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .lean(),
-
-        Order.countDocuments(filter),
-
-        Order.countDocuments({ status: "PENDING" }),
-
-        Order.find({ paymentStatus: "PAID" })
-          .select("totalAmount total")
-          .lean(),
-
-        Order.countDocuments({
-          paymentMethod: {
-            $in: ["COD", "CASH_ON_DELIVERY", "Cash on Delivery"],
-          },
-        }),
-      ]);
-
-    const revenue = paidOrders.reduce((sum, order) => {
-      const amount =
-        typeof order.totalAmount === "number"
-          ? order.totalAmount
-          : typeof order.total === "number"
-            ? order.total
-            : 0;
-
-      return sum + amount;
-    }, 0);
+    const orders = await Order.find()
+      .sort({ createdAt: -1 })
+      .lean();
 
     return NextResponse.json({
       success: true,
       orders,
-      pagination: {
-        page,
-        limit,
-        totalOrders,
-        totalPages: Math.ceil(totalOrders / limit),
-      },
-      summary: {
-        totalOrders: await Order.countDocuments(),
-        pendingOrders,
-        revenue,
-        codOrders,
-      },
     });
   } catch (error) {
-    console.error("Admin orders API error:", error);
+    console.error("Fetch orders error:", error);
 
     return NextResponse.json(
-      { success: false, message: "Failed to fetch orders" },
+      { success: false, message: "Unable to fetch orders." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getAdminSession();
+
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized access." },
+        { status: 401 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const body = await request.json();
+    const orderId = String(body.orderId || "").trim();
+
+    if (!orderId || !/^[a-f\d]{24}$/i.test(orderId)) {
+      return NextResponse.json(
+        { success: false, message: "A valid order ID is required." },
+        { status: 400 }
+      );
+    }
+
+    const updates: Record<string, string> = {};
+
+    if (body.orderStatus !== undefined) {
+      if (
+        !orderStatuses.includes(
+          body.orderStatus as (typeof orderStatuses)[number]
+        )
+      ) {
+        return NextResponse.json(
+          { success: false, message: "Invalid order status." },
+          { status: 400 }
+        );
+      }
+
+      updates.orderStatus = body.orderStatus;
+    }
+
+    if (body.paymentStatus !== undefined) {
+      if (
+        !paymentStatuses.includes(
+          body.paymentStatus as (typeof paymentStatuses)[number]
+        )
+      ) {
+        return NextResponse.json(
+          { success: false, message: "Invalid payment status." },
+          { status: 400 }
+        );
+      }
+
+      updates.paymentStatus = body.paymentStatus;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json(
+        { success: false, message: "No valid updates provided." },
+        { status: 400 }
+      );
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      orderId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!order) {
+      return NextResponse.json(
+        { success: false, message: "Order not found." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Order updated successfully.",
+      order,
+    });
+  } catch (error) {
+    console.error("Update order error:", error);
+
+    return NextResponse.json(
+      { success: false, message: "Unable to update order." },
       { status: 500 }
     );
   }

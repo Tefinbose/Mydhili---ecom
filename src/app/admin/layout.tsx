@@ -11,16 +11,16 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
 
-  // Login page should not display the admin sidebar.
+  // Keep the login page free from the admin sidebar.
   if (pathname === "/admin/login") {
     return <>{children}</>;
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2]">
+    <div className="min-h-screen bg-[#FAF7F2] lg:flex">
       <AdminSidebar />
 
-      <main className="min-h-screen min-w-0 lg:ml-72">
+      <main className="min-w-0 flex-1">
         {children}
       </main>
     </div>
