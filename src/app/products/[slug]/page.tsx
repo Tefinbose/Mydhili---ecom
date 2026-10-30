@@ -1,14 +1,21 @@
-
 import { connection } from "next/server";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ShoppingBag, ShieldCheck, Truck } from "lucide-react";
+import { Bricolage_Grotesque } from "next/font/google";
+import { ArrowLeft, ArrowUpRight, CircleCheck, CircleX, RefreshCw, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
+import ProductPurchaseOptions from "@/components/cart/ProductPurchaseOptions";
 
 export const instant = false;
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-pdp",
+  display: "swap",
+});
 
 interface ProductVariant {
   sku?: string;
@@ -32,6 +39,16 @@ interface ProductData {
   isActive?: boolean;
 }
 
+const eyebrow = "text-[10px] font-semibold uppercase tracking-[0.24em] text-[#946C2D] sm:text-xs";
+const pill = "rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em]";
+const card = "rounded-2xl border border-[#E9DFD2] bg-white p-4";
+
+const perks = [
+  { icon: Truck, title: "Delivery", text: "Availability and charges are confirmed at checkout." },
+  { icon: RefreshCw, title: "Returns", text: "Please review our returns policy before ordering." },
+  { icon: ShieldCheck, title: "Support", text: "Need help choosing? Message us on Instagram." },
+];
+
 function formatPrice(price: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -52,11 +69,7 @@ function formatCategory(category?: string) {
 async function getProduct(slug: string): Promise<ProductData | null> {
   await connectToDatabase();
 
-  const product = await Product.findOne({
-    slug,
-    isActive: true,
-  }).lean();
-
+  const product = await Product.findOne({ slug, isActive: true }).lean();
   if (!product) return null;
 
   return JSON.parse(JSON.stringify(product)) as ProductData;
@@ -77,53 +90,31 @@ export default async function ProductDetailPage({
   }
 
   const images = product.images?.filter(Boolean) ?? [];
-  const imageUrl = images[0];
+  const imageUrl = images[0] ?? "";
   const variants = product.variants ?? [];
-
-  const sizes = [
-    ...new Set(
-      variants
-        .map((variant) => variant.size)
-        .filter((size): size is string => Boolean(size))
-    ),
-  ];
-
-  const colors = [
-    ...new Set(
-      variants
-        .map((variant) => variant.color)
-        .filter((color): color is string => Boolean(color))
-    ),
-  ];
-
-  const inStock = variants.length
-    ? variants.some((variant) => (variant.stock ?? 0) > 0)
-    : true;
-
-  const discount =
-    product.compareAtPrice && product.compareAtPrice > product.price
-      ? Math.round(
-          ((product.compareAtPrice - product.price) /
-            product.compareAtPrice) *
-            100
-        )
-      : 0;
+  const inStock = variants.length ? variants.some((v) => (v.stock ?? 0) > 0) : true;
+  const hasDiscount = !!product.compareAtPrice && product.compareAtPrice > product.price;
+  const discount = hasDiscount
+    ? Math.round(((product.compareAtPrice! - product.price) / product.compareAtPrice!) * 100)
+    : 0;
 
   return (
-    <main className="min-h-screen bg-[#FAF7F2] text-[#380712]">
+    <main className={`${bricolage.variable} min-h-screen bg-[#FAF7F2] font-[family-name:var(--font-pdp)] text-[#380712]`}>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <Link
-          href="/shop"
-          className="mb-8 inline-flex items-center gap-2 text-sm text-neutral-600 transition hover:text-[#9A6B35]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to collection
-        </Link>
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-2 text-sm text-stone-500">
+          <Link href="/shop" className="group inline-flex items-center gap-2 transition hover:text-[#380712]">
+            <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
+            Collection
+          </Link>
+          <span className="text-[#D4AF69]">/</span>
+          <span className="line-clamp-1 font-medium text-[#380712]">{product.name}</span>
+        </nav>
 
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-          {/* Product image */}
-          <section>
-            <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-[#F0E9DF]">
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-14">
+          {/* Gallery */}
+          <section className="min-w-0 lg:sticky lg:top-28 lg:self-start">
+            <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-[#380712] to-[#6D2636] shadow-[0_24px_60px_rgba(56,7,18,0.14)]">
               {imageUrl ? (
                 <Image
                   src={imageUrl}
@@ -134,31 +125,23 @@ export default async function ProductDetailPage({
                   className="object-cover"
                 />
               ) : (
-                <div className="flex flex-col items-center gap-4 px-8 text-center">
-                  <ShoppingBag className="h-16 w-16 text-[#9A6B35]/50" />
-                  <p className="font-serif text-2xl text-[#9A6B35]">
-                    Mydhili Collections
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    Product image coming soon
-                  </p>
+                <div className="flex flex-col items-center gap-3 px-8 text-center text-[#E6C47A]">
+                  <ShoppingBag size={52} strokeWidth={1.1} />
+                  <p className="text-xl font-semibold tracking-[-0.02em]">Mydhili Collections</p>
+                  <p className="text-sm font-light text-white/60">Product image coming soon</p>
                 </div>
               )}
 
-              {product.isFeatured && (
-                <span className="absolute left-4 top-4 bg-[#380712] px-4 py-2 text-xs uppercase tracking-[0.2em] text-white">
-                  Featured
-                </span>
-              )}
+              <div className="absolute left-4 top-4 flex flex-col items-start gap-2">
+                {hasDiscount && <span className={`${pill} bg-[#D4AF69]`}>Save {discount}%</span>}
+                {product.isFeatured && <span className={`${pill} bg-white/90 backdrop-blur-sm`}>Featured</span>}
+              </div>
             </div>
 
             {images.length > 1 && (
-              <div className="mt-4 grid grid-cols-4 gap-3">
+              <div className="mt-3 grid grid-cols-4 gap-3">
                 {images.slice(1, 5).map((image, index) => (
-                  <div
-                    key={`${image}-${index}`}
-                    className="relative aspect-[3/4] overflow-hidden bg-[#F0E9DF]"
-                  >
+                  <div key={`${image}-${index}`} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-[#F0E9DF]">
                     <Image
                       src={image}
                       alt={`${product.name} - view ${index + 2}`}
@@ -172,132 +155,69 @@ export default async function ProductDetailPage({
             )}
           </section>
 
-          {/* Product information */}
-          <section className="flex flex-col py-2 lg:py-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#9A6B35]">
-              {formatCategory(product.category)}
-            </p>
+          {/* Information */}
+          <section className="flex min-w-0 flex-col">
+            <div className="mb-3 flex items-center gap-3">
+              <span className="h-px w-8 bg-[#A27B35]" />
+              <p className={eyebrow}>{formatCategory(product.category)}</p>
+            </div>
 
-            <h1 className="mt-4 font-serif text-4xl leading-tight sm:text-5xl">
+            <h1 className="text-[clamp(2rem,3.8vw,3.2rem)] font-semibold leading-[1.05] tracking-[-0.035em]">
               {product.name}
             </h1>
 
             {product.shortDescription && (
-              <p className="mt-5 text-base leading-7 text-neutral-600">
-                {product.shortDescription}
-              </p>
+              <p className="mt-4 text-sm font-light leading-7 text-stone-600 sm:text-base">{product.shortDescription}</p>
             )}
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <span className="text-2xl font-medium">
-                {formatPrice(product.price)}
+            <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="text-3xl font-semibold tracking-[-0.03em]">{formatPrice(product.price)}</span>
+              {hasDiscount && <span className="text-base text-stone-400 line-through">{formatPrice(product.compareAtPrice!)}</span>}
+              <span className={`inline-flex items-center gap-1.5 ${pill} ${inStock ? "bg-[#EAF4EC] text-[#2F6B3C]" : "bg-[#FDECEC] text-[#8B1E2D]"}`}>
+                {inStock ? <CircleCheck size={13} /> : <CircleX size={13} />}
+                {inStock ? "In stock" : "Sold out"}
               </span>
-
-              {product.compareAtPrice &&
-                product.compareAtPrice > product.price && (
-                  <>
-                    <span className="text-base text-neutral-400 line-through">
-                      {formatPrice(product.compareAtPrice)}
-                    </span>
-                    <span className="bg-[#E9DCC5] px-3 py-1 text-xs font-semibold text-[#380712]">
-                      {discount}% OFF
-                    </span>
-                  </>
-                )}
             </div>
 
-            <div className="my-8 h-px bg-[#E5DCD0]" />
+            <div className="my-6 h-px bg-gradient-to-r from-[#D4AF69]/60 via-[#E9DFD2] to-transparent" />
 
-            {product.description && (
-              <div>
-                <h2 className="font-serif text-xl">Product details</h2>
-                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-neutral-600">
-                  {product.description}
-                </p>
-              </div>
-            )}
+            {/* Size, colour, quantity and cart controls */}
+            <ProductPurchaseOptions
+              productId={product._id}
+              slug={product.slug}
+              name={product.name}
+              image={imageUrl}
+              price={product.price}
+              variants={variants}
+            />
 
-            {sizes.length > 0 && (
-              <div className="mt-8">
-                <h2 className="text-sm font-semibold">Available sizes</h2>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {sizes.map((size) => (
-                    <span
-                      key={size}
-                      className="border border-[#D8C9B7] bg-white px-4 py-2 text-sm"
-                    >
-                      {size}
-                    </span>
-                  ))}
+            {/* Perks */}
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              {perks.map(({ icon: Icon, title, text }) => (
+                <div key={title} className={card}>
+                  <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#FAF3E8] text-[#9A6B35]">
+                    <Icon size={18} strokeWidth={1.5} />
+                  </span>
+                  <p className="text-sm font-semibold">{title}</p>
+                  <p className="mt-1 text-xs font-light leading-5 text-stone-500">{text}</p>
                 </div>
-              </div>
-            )}
-
-            {colors.length > 0 && (
-              <div className="mt-6">
-                <h2 className="text-sm font-semibold">Available colours</h2>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {colors.map((color) => (
-                    <span
-                      key={color}
-                      className="border border-[#D8C9B7] bg-white px-4 py-2 text-sm"
-                    >
-                      {color}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-8">
-              {inStock ? (
-                <p className="flex items-center gap-2 text-sm text-green-700">
-                  <span className="h-2 w-2 rounded-full bg-green-600" />
-                  Available for purchase
-                </p>
-              ) : (
-                <p className="text-sm text-red-700">
-                  Currently out of stock
-                </p>
-              )}
-            </div>
-
-            <Link
-              href="/shop"
-              className="mt-5 flex min-h-14 items-center justify-center gap-3 bg-[#380712] px-6 py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition hover:bg-[#520D1D]"
-            >
-              <ShoppingBag className="h-5 w-5" />
-              Explore more products
-            </Link>
-
-            <div className="mt-8 grid gap-4 border-t border-[#E5DCD0] pt-6 sm:grid-cols-2">
-              <div className="flex items-start gap-3">
-                <Truck className="mt-1 h-5 w-5 shrink-0 text-[#9A6B35]" />
-                <div>
-                  <p className="text-sm font-medium">Delivery information</p>
-                  <p className="mt-1 text-xs leading-5 text-neutral-500">
-                    Delivery availability and charges are confirmed at checkout.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-[#9A6B35]" />
-                <div>
-                  <p className="text-sm font-medium">Shopping with confidence</p>
-                  <p className="mt-1 text-xs leading-5 text-neutral-500">
-                    Please review our shipping and returns policy before ordering.
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
 
             <Link
               href="/shipping-returns"
-              className="mt-5 text-sm text-[#9A6B35] underline underline-offset-4 hover:text-[#380712]"
+              className="group mt-5 inline-flex w-fit items-center gap-2 border-b border-[#B99A61] pb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9A6B35] transition hover:text-[#380712]"
             >
-              View shipping and returns policy
+              Shipping and returns policy
+              <ArrowUpRight size={14} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
+
+            {product.description && (
+              <div className="mt-8 rounded-3xl border border-[#E9DFD2] bg-white p-6">
+                <h2 className="text-lg font-semibold tracking-[-0.02em]">Product details</h2>
+                <p className="mt-3 whitespace-pre-line text-sm font-light leading-7 text-stone-600">{product.description}</p>
+              </div>
+            )}
           </section>
         </div>
       </div>

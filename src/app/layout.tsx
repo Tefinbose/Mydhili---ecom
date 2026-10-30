@@ -5,6 +5,8 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import InitialPreloader from "@/components/common/InitialPreloader";
+import { CartProvider } from "@/context/CartContext";
+import { WishlistProvider } from "@/context/WishlistContext";
 
 export const metadata: Metadata = {
   title: {
@@ -53,12 +55,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-[#FAF7F2] text-stone-900 antialiased">
-        <InitialPreloader />
-        <Navbar />
+        <CartProvider>
+          <WishlistProvider>
+            <InitialPreloader />
+            <Navbar />
 
-        <main className="min-h-screen">{children}</main>
+            <main className="min-h-screen">{children}</main>
 
-        <Footer />
+            <Footer />
+          </WishlistProvider>
+        </CartProvider>
       </body>
     </html>
   );

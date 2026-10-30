@@ -1,27 +1,74 @@
-
 import mongoose, { Schema, type Model } from "mongoose";
 
-const OrderItemSchema = new Schema(
+export interface IOrderItem {
+  productId: mongoose.Types.ObjectId;
+  name: string;
+  slug: string;
+  image: string;
+  price: number;
+  quantity: number;
+  sku?: string;
+  size?: string;
+  color?: string;
+}
+
+export interface IOrder {
+  orderNumber: string;
+
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+
+  shippingAddress: {
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    landmark?: string;
+  };
+
+  items: IOrderItem[];
+
+  subtotal: number;
+  shippingCharge: number;
+  total: number;
+
+  paymentMethod: "cod" | "online";
+  paymentStatus: "pending" | "paid" | "failed";
+  orderStatus:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled";
+
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const OrderItemSchema = new Schema<IOrderItem>(
   {
-    product: {
+    productId: {
       type: Schema.Types.ObjectId,
       ref: "Product",
       required: true,
     },
-    name: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, trim: true },
-    sku: { type: String, default: "" },
-    size: { type: String, default: "" },
-    color: { type: String, default: "" },
+    name: { type: String, required: true },
+    slug: { type: String, required: true },
     image: { type: String, default: "" },
     price: { type: Number, required: true, min: 0 },
     quantity: { type: Number, required: true, min: 1 },
-    lineTotal: { type: Number, required: true, min: 0 },
+    sku: { type: String },
+    size: { type: String },
+    color: { type: String },
   },
   { _id: false }
 );
 
-const OrderSchema = new Schema(
+const OrderSchema = new Schema<IOrder>(
   {
     orderNumber: {
       type: String,
@@ -31,70 +78,62 @@ const OrderSchema = new Schema(
     },
 
     customer: {
-      fullName: { type: String, required: true, trim: true },
-      email: { type: String, default: "", trim: true, lowercase: true },
+      name: { type: String, required: true, trim: true },
+      email: { type: String, required: true, trim: true, lowercase: true },
       phone: { type: String, required: true, trim: true },
     },
 
     shippingAddress: {
-      address: { type: String, required: true, trim: true },
-      landmark: { type: String, default: "", trim: true },
-      city: { type: String, required: true, trim: true },
-      state: { type: String, required: true, trim: true },
-      pincode: { type: String, required: true, trim: true },
-      notes: { type: String, default: "", trim: true },
+      address: { type: String, required: true },
+      city: { type: String, required: true },
+      state: { type: String, required: true },
+      pincode: { type: String, required: true },
+      landmark: { type: String, default: "" },
     },
 
     items: {
       type: [OrderItemSchema],
       required: true,
       validate: {
-        validator: (items: unknown[]) => items.length > 0,
+        validator: (items: IOrderItem[]) => items.length > 0,
         message: "An order must contain at least one item.",
       },
     },
 
     subtotal: { type: Number, required: true, min: 0 },
     shippingCharge: { type: Number, required: true, min: 0, default: 0 },
-    discount: { type: Number, required: true, min: 0, default: 0 },
     total: { type: Number, required: true, min: 0 },
 
     paymentMethod: {
       type: String,
-      enum: ["COD", "RAZORPAY"],
+      enum: ["cod", "online"],
       required: true,
     },
 
     paymentStatus: {
       type: String,
-      enum: ["PENDING", "PAID", "FAILED", "COD_PENDING"],
-      default: "PENDING",
-      required: true,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
     },
 
     orderStatus: {
       type: String,
       enum: [
-        "PENDING",
-        "CONFIRMED",
-        "PROCESSING",
-        "SHIPPED",
-        "DELIVERED",
-        "CANCELLED",
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
       ],
-      default: "PENDING",
-      required: true,
+      default: "pending",
     },
-
-    // Populated when Razorpay integration is implemented.
-    razorpayOrderId: { type: String, default: "" },
-    razorpayPaymentId: { type: String, default: "" },
   },
   { timestamps: true }
 );
 
-const Order: Model<any> =
-  mongoose.models.Order ||
-  mongoose.model("Order", OrderSchema);
+const Order: Model<IOrder> =
+  (mongoose.models.Order as Model<IOrder>) ||
+  mongoose.model<IOrder>("Order", OrderSchema);
 
 export default Order;

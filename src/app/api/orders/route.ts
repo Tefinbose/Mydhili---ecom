@@ -1,324 +1,276 @@
-
-import { randomBytes } from "node:crypto";
-import { NextResponse } from "next/server";
-import { z } from "zod";
+import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { z } from "zod";
 
-import {connectToDatabase} from "@/lib/mongodb";
+import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
 
-const OrderRequestSchema = z.object({
+const checkoutSchema = z.object({
   customer: z.object({
-    fullName: z.string().trim().min(2).max(100),
-    email: z.union([z.string().trim().email(), z.literal("")]).optional(),
-    phone: z.string().trim().min(10).max(20),
+    name: z.string().trim().min(2).max(100),
+    email: z.string().trim().email().max(150),
+    phone: z.string().trim().min(7).max(20),
   }),
-
   shippingAddress: z.object({
     address: z.string().trim().min(5).max(300),
-    landmark: z.string().trim().max(150).optional().default(""),
     city: z.string().trim().min(2).max(100),
     state: z.string().trim().min(2).max(100),
-    pincode: z.string().trim().min(4).max(12),
-    notes: z.string().trim().max(500).optional().default(""),
+    pincode: z.string().trim().regex(/^[0-9]{6}$/),
+    landmark: z.string().trim().max(150).optional().default(""),
   }),
-
-  items: z.array(
-    z.object({
-      productId: z.string().trim().min(1),
-      quantity: z.number().int().min(1).max(50),
-      sku: z.string().trim().optional().default(""),
-      size: z.string().trim().optional().default(""),
-      color: z.string().trim().optional().default(""),
-    })
-  ).min(1).max(100),
-
-  paymentMethod: z.enum(["cod", "razorpay"]),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().refine((value) =>
+          mongoose.Types.ObjectId.isValid(value)
+        ),
+        quantity: z.number().int().min(1).max(20),
+        size: z.string().optional(),
+        color: z.string().optional(),
+      })
+    )
+    .min(1)
+    .max(30),
+  paymentMethod: z.enum(["cod", "online"]),
 });
 
-function generateOrderNumber() {
-  return `MYD-${Date.now().toString().slice(-8)}-${randomBytes(3)
-    .toString("hex")
-    .toUpperCase()}`;
+type ReservedStock = {
+  productId: mongoose.Types.ObjectId;
+  size: string;
+  color: string;
+  quantity: number;
+};
+
+function makeOrderNumber() {
+  const randomPart = Math.floor(1000 + Math.random() * 9000);
+  return `MDH-${Date.now()}-${randomPart}`;
 }
 
-export async function POST(request: Request) {
-  try {
-    const body: unknown = await request.json();
-    const validation = OrderRequestSchema.safeParse(body);
+export async function POST(request: NextRequest) {
+  const reservedStock: ReservedStock[] = [];
 
-    if (!validation.success) {
+  try {
+    const body = await request.json();
+    const parsed = checkoutSchema.safeParse(body);
+
+    if (!parsed.success) {
       return NextResponse.json(
         {
-          success: false,
           message: "Please check your checkout details.",
-          errors: validation.error.flatten(),
+          errors: parsed.error.flatten(),
         },
         { status: 400 }
       );
     }
 
-    const data = validation.data;
+    const {
+      customer,
+      shippingAddress,
+      items,
+      paymentMethod,
+    } = parsed.data;
+
+    if (paymentMethod === "online") {
+      return NextResponse.json(
+        {
+          message:
+            "Online payment is not available yet. Please select Cash on Delivery.",
+        },
+        { status: 400 }
+      );
+    }
 
     await connectToDatabase();
 
-    // Combine duplicate product variants.
-    const combinedItems = new Map<
-      string,
-      {
-        productId: string;
-        quantity: number;
-        sku: string;
-        size: string;
-        color: string;
-      }
-    >();
+    const orderItems = [];
+    let subtotal = 0;
 
-    for (const item of data.items) {
-      if (!mongoose.isValidObjectId(item.productId)) {
-        return NextResponse.json(
-          { success: false, message: "Invalid product ID in cart." },
-          { status: 400 }
+    for (const item of items) {
+      const product = await Product.findOne({
+        _id: item.productId,
+        isActive: true,
+      }).lean();
+
+      if (!product) {
+        throw new Error("One of the products in your bag is unavailable.");
+      }
+
+      let selectedVariant:
+        | {
+            sku?: string;
+            size?: string;
+            color?: string;
+            stock?: number;
+          }
+        | undefined;
+
+      const variants = product.variants ?? [];
+
+      if (variants.length > 0) {
+        selectedVariant = variants.find(
+          (variant) =>
+            (variant.size ?? "") === (item.size ?? "") &&
+            (variant.color ?? "") === (item.color ?? "")
         );
-      }
 
-      const key = [
-        item.productId,
-        item.sku,
-        item.size,
-        item.color,
-      ].join("|");
-
-      const existing = combinedItems.get(key);
-
-      if (existing) {
-        existing.quantity += item.quantity;
-
-        if (existing.quantity > 50) {
-          return NextResponse.json(
-            { success: false, message: "Maximum quantity exceeded." },
-            { status: 400 }
+        if (!selectedVariant) {
+          throw new Error(
+            `${product.name}: the selected size or color is unavailable.`
           );
         }
-      } else {
-        combinedItems.set(key, { ...item });
+
+        if ((selectedVariant.stock ?? 0) < item.quantity) {
+          throw new Error(
+            `${product.name}: insufficient stock for the selected variant.`
+          );
+        }
+      } else if (item.size || item.color) {
+        throw new Error(
+          `${product.name}: the selected variant is no longer available.`
+        );
       }
+
+      const price = Number(product.price);
+
+      if (!Number.isFinite(price) || price < 0) {
+        throw new Error(`${product.name}: invalid product price.`);
+      }
+
+      subtotal += price * item.quantity;
+
+      orderItems.push({
+        productId: new mongoose.Types.ObjectId(item.productId),
+        name: product.name,
+        slug: product.slug,
+        image: product.images?.[0] ?? "",
+        price,
+        quantity: item.quantity,
+        sku: selectedVariant?.sku,
+        size: selectedVariant?.size,
+        color: selectedVariant?.color,
+      });
     }
 
-    // Explicit type for the MongoDB session.
-    const session: import("mongoose").ClientSession =
-      await mongoose.startSession();
+    // Reserve stock using an atomic update so concurrent checkouts
+    // cannot both purchase the last available units.
+    for (const item of items) {
+      const productId = new mongoose.Types.ObjectId(item.productId);
+      const product = await Product.findById(productId)
+        .select("variants")
+        .lean();
 
-    try {
-      let savedOrder: InstanceType<typeof Order> | null = null;
-
-      await session.withTransaction(async () => {
-        const orderItems: Array<{
-          product: mongoose.Types.ObjectId;
-          name: string;
-          slug: string;
-          sku: string;
-          size: string;
-          color: string;
-          image: string;
-          price: number;
-          quantity: number;
-          lineTotal: number;
-        }> = [];
-
-        let subtotal = 0;
-
-        for (const item of combinedItems.values()) {
-          const product = await Product.findOne({
-            _id: item.productId,
-            isActive: true,
-          }).session(session);
-
-          if (!product) {
-            throw new Error("PRODUCT_NOT_FOUND");
-          }
-
-          const variant = product.variants.find((entry) => {
-            if (item.sku) {
-              return entry.sku === item.sku;
-            }
-
-            return (
-              (entry.size ?? "") === item.size &&
-              (entry.color ?? "") === item.color
-            );
-          });
-
-          if (!variant) {
-            throw new Error("VARIANT_NOT_FOUND");
-          }
-
-          if ((variant.stock ?? 0) < item.quantity) {
-            throw new Error("INSUFFICIENT_STOCK");
-          }
-
-          const price = Number(product.price);
-
-          if (!Number.isFinite(price) || price < 0) {
-            throw new Error("INVALID_PRICE");
-          }
-
-          const lineTotal = price * item.quantity;
-          subtotal += lineTotal;
-
-          orderItems.push({
-            product: product._id,
-            name: product.name,
-            slug: product.slug,
-            sku: variant.sku ?? "",
-            size: variant.size ?? "",
-            color: variant.color ?? "",
-            image: product.images?.[0] ?? "",
-            price,
-            quantity: item.quantity,
-            lineTotal,
-          });
-
-          // Reduce stock for COD orders within the transaction.
-          if (data.paymentMethod === "cod") {
-            const stockUpdate = await Product.updateOne(
-              {
-                _id: product._id,
-                isActive: true,
-                variants: {
-                  $elemMatch: {
-                    sku: variant.sku,
-                    stock: { $gte: item.quantity },
-                  },
-                },
-              },
-              {
-                $inc: {
-                  "variants.$[selectedVariant].stock": -item.quantity,
-                },
-              },
-              {
-                arrayFilters: [
-                  {
-                    "selectedVariant.sku": variant.sku,
-                    "selectedVariant.stock": { $gte: item.quantity },
-                  },
-                ],
-                session,
-              }
-            );
-
-            if (stockUpdate.modifiedCount !== 1) {
-              throw new Error("INSUFFICIENT_STOCK");
-            }
-          }
-        }
-
-        const paymentMethod =
-          data.paymentMethod === "cod" ? "COD" : "RAZORPAY";
-
-        const [createdOrder] = await Order.create(
-          [
-            {
-              orderNumber: generateOrderNumber(),
-              customer: {
-                fullName: data.customer.fullName,
-                email: data.customer.email ?? "",
-                phone: data.customer.phone,
-              },
-              shippingAddress: {
-                address: data.shippingAddress.address,
-                landmark: data.shippingAddress.landmark ?? "",
-                city: data.shippingAddress.city,
-                state: data.shippingAddress.state,
-                pincode: data.shippingAddress.pincode,
-                notes: data.shippingAddress.notes ?? "",
-              },
-              items: orderItems,
-              subtotal,
-              shippingCharge: 0,
-              discount: 0,
-              total: subtotal,
-              paymentMethod,
-              paymentStatus:
-                paymentMethod === "COD" ? "COD_PENDING" : "PENDING",
-              orderStatus: "PENDING",
-            },
-          ],
-          { session }
-        );
-
-        savedOrder = createdOrder;
-      });
-
-      if (!savedOrder) {
-        return NextResponse.json(
-          { success: false, message: "Order could not be created." },
-          { status: 500 }
-        );
+      if (!product || !product.variants?.length) {
+        continue;
       }
 
-      return NextResponse.json(
+      const size = item.size ?? "";
+      const color = item.color ?? "";
+
+      const stockUpdate = await Product.updateOne(
         {
-          success: true,
-          message: "Order created successfully.",
-          order: {
-            id: savedOrder._id.toString(),
-            orderNumber: savedOrder.orderNumber,
-            subtotal: savedOrder.subtotal,
-            shippingCharge: savedOrder.shippingCharge,
-            discount: savedOrder.discount,
-            total: savedOrder.total,
-            paymentMethod: savedOrder.paymentMethod,
-            paymentStatus: savedOrder.paymentStatus,
-            orderStatus: savedOrder.orderStatus,
+          _id: productId,
+          isActive: true,
+          variants: {
+            $elemMatch: {
+              size,
+              color,
+              stock: { $gte: item.quantity },
+            },
           },
         },
-        { status: 201 }
+        {
+          $inc: {
+            "variants.$[variant].stock": -item.quantity,
+          },
+        },
+        {
+          arrayFilters: [
+            {
+              "variant.size": size,
+              "variant.color": color,
+              "variant.stock": { $gte: item.quantity },
+            },
+          ],
+        }
       );
-    } finally {
-      await session.endSession();
-    }
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "";
 
-    if (message === "PRODUCT_NOT_FOUND") {
-      return NextResponse.json(
-        { success: false, message: "A product in your cart is unavailable." },
-        { status: 400 }
-      );
+      if (stockUpdate.modifiedCount !== 1) {
+        throw new Error(
+          "Stock has changed while you were checking out. Please review your bag and try again."
+        );
+      }
+
+      reservedStock.push({
+        productId,
+        size,
+        color,
+        quantity: item.quantity,
+      });
     }
 
-    if (message === "VARIANT_NOT_FOUND") {
-      return NextResponse.json(
-        { success: false, message: "A selected size or color is unavailable." },
-        { status: 400 }
-      );
-    }
+    const shippingCharge = 0;
+    const total = subtotal + shippingCharge;
 
-    if (message === "INSUFFICIENT_STOCK") {
-      return NextResponse.json(
-        { success: false, message: "Insufficient stock for a selected product." },
-        { status: 409 }
-      );
-    }
+    const order = await Order.create({
+      orderNumber: makeOrderNumber(),
+      customer,
+      shippingAddress,
+      items: orderItems,
+      subtotal,
+      shippingCharge,
+      total,
+      paymentMethod: "cod",
+      paymentStatus: "pending",
+      orderStatus: "confirmed",
+    });
 
-    if (message === "INVALID_PRICE") {
-      return NextResponse.json(
-        { success: false, message: "A product has an invalid price." },
-        { status: 500 }
-      );
+    return NextResponse.json(
+      {
+        message: "Your order has been placed successfully.",
+        orderNumber: order.orderNumber,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    // Restore any stock already reserved if order creation fails.
+    if (reservedStock.length > 0) {
+      try {
+        await connectToDatabase();
+
+        for (const item of reservedStock) {
+          await Product.updateOne(
+            { _id: item.productId },
+            {
+              $inc: {
+                "variants.$[variant].stock": item.quantity,
+              },
+            },
+            {
+              arrayFilters: [
+                {
+                  "variant.size": item.size,
+                  "variant.color": item.color,
+                },
+              ],
+            }
+          );
+        }
+      } catch (rollbackError) {
+        console.error("Stock rollback failed:", rollbackError);
+      }
     }
 
     console.error("Order creation error:", error);
 
     return NextResponse.json(
       {
-        success: false,
-        message: "Unable to place your order. Please try again.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to place your order. Please try again.",
       },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }

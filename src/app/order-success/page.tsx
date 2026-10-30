@@ -1,174 +1,159 @@
-
-"use client";
-
-import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
-import { CheckCircle2, Clock, ArrowRight, Home, ShoppingBag, Receipt } from "lucide-react";
+import { Bricolage_Grotesque } from "next/font/google";
+import {
+  ArrowRight,
+  Banknote,
+  Check,
+  House,
+  PackageCheck,
+  PhoneCall,
+  ShoppingBag,
+  Truck,
+} from "lucide-react";
 
-type OrderDetails = {
-  orderNumber: string;
-  total: number;
-  paymentMethod: "COD" | "RAZORPAY";
-  paymentStatus: string;
-  orderStatus: string;
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-success",
+  display: "swap",
+});
+
+type OrderSuccessPageProps = {
+  searchParams: Promise<{ order?: string }>;
 };
 
-function OrderSuccessContent() {
-  const searchParams = useSearchParams();
-  const orderNumberFromUrl = searchParams.get("orderNumber");
-  const paymentPending = searchParams.get("payment") === "pending";
+export const instant = false;
 
-  const [order, setOrder] = useState<OrderDetails | null>(null);
+const steps = [
+  { icon: PhoneCall, title: "We'll contact you", text: "We'll confirm your order details." },
+  { icon: PackageCheck, title: "We prepare it", text: "Checked and packed with care." },
+  { icon: Truck, title: "On its way", text: "Estimated 1–4 days within India." },
+];
 
-  useEffect(() => {
-    const storedOrder = sessionStorage.getItem("mydhili-last-order");
+const label = "text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9A6B35]";
 
-    if (!storedOrder) return;
+const goldBtn =
+  "group inline-flex h-14 items-center justify-between gap-4 rounded-full " +
+  "bg-gradient-to-r from-[#E6C47A] via-[#D4AF69] to-[#B8893F] py-1.5 pl-7 pr-1.5 " +
+  "text-[12px] font-semibold uppercase tracking-[0.14em] text-[#380712] " +
+  "shadow-[0_10px_30px_rgba(212,175,105,0.35)] transition-all duration-300 hover:-translate-y-0.5";
 
-    try {
-      const parsed = JSON.parse(storedOrder) as OrderDetails;
+const outlineBtn =
+  "inline-flex h-14 items-center justify-center gap-2.5 rounded-full " +
+  "border border-[#380712]/25 px-7 text-[12px] font-semibold uppercase " +
+  "tracking-[0.14em] text-[#380712] transition-all duration-300 " +
+  "hover:border-[#380712] hover:bg-[#380712] hover:text-white";
 
-      if (parsed.orderNumber === orderNumberFromUrl) {
-        setOrder(parsed);
-      }
-    } catch {
-      setOrder(null);
-    }
-  }, [orderNumberFromUrl]);
-
-  if (!orderNumberFromUrl) {
-    return (
-      <main className="mx-auto max-w-2xl px-5 py-20 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#FAF7F2] text-[#9A6B35]">
-          <ShoppingBag size={32} />
-        </div>
-        <h1 className="text-2xl font-semibold text-[#380712]">
-          No order was selected
-        </h1>
-        <Link
-          href="/shop"
-          className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#380712] px-6 py-3 text-white transition hover:bg-[#520A1A]"
-        >
-          <span>Continue shopping</span>
-          <ArrowRight size={16} />
-        </Link>
-      </main>
-    );
-  }
+export default async function OrderSuccessPage({
+  searchParams,
+}: OrderSuccessPageProps) {
+  const { order: orderNumber } = await searchParams;
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-16 sm:py-24">
-      <section className="rounded-3xl border border-[#eadfdc] bg-white p-8 text-center shadow-sm sm:p-12">
-        <div className="relative mx-auto mb-4 flex h-20 w-auto items-center justify-center">
-          <Image
-            src="/logo/logo.png"
-            alt="Mydhili Boutique"
-            width={759}
-            height={566}
-            className="h-16 w-auto object-contain"
-          />
-        </div>
-
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F5DFC0]/40 text-[#9A6B35]">
-          {paymentPending ? (
-            <Clock size={30} className="text-amber-600" />
-          ) : (
-            <CheckCircle2 size={32} className="text-[#380712]" />
-          )}
-        </div>
-
-        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.25em] text-[#9a6b35]">
-          Mydhili Boutique
-        </p>
-
-        <h1 className="mt-2 text-3xl font-semibold text-[#380712]">
-          {paymentPending ? "Order created" : "Thank you for your order!"}
-        </h1>
-
-        <p className="mt-4 leading-7 text-gray-600">
-          {paymentPending
-            ? "Your order has been created, but your online payment has not been completed. Please complete payment before we confirm it."
-            : "We've received your order. Keep your order number for future reference."}
-        </p>
-
-        <div className="mt-8 rounded-2xl bg-[#faf7f2] p-5 text-left border border-[#D4AF69]/20">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Receipt size={16} className="text-[#9A6B35]" />
-            <span>Order number</span>
-          </div>
-          <p className="mt-1 break-all text-lg font-semibold text-[#380712]">
-            {orderNumberFromUrl}
-          </p>
-
-          {order && (
-            <>
-              <div className="mt-5 flex justify-between gap-4 text-sm">
-                <span className="text-gray-600">Order total</span>
-                <span className="font-semibold text-[#380712]">
-                  ₹{Number(order.total).toLocaleString("en-IN")}
-                </span>
-              </div>
-
-              <div className="mt-3 flex justify-between gap-4 text-sm">
-                <span className="text-gray-600">Payment method</span>
-                <span className="font-medium">
-                  {order.paymentMethod === "COD"
-                    ? "Cash on Delivery"
-                    : "Online Payment"}
-                </span>
-              </div>
-
-              <div className="mt-3 flex justify-between gap-4 text-sm">
-                <span className="text-gray-600">Payment status</span>
-                <span className="font-medium">
-                  {order.paymentStatus.replaceAll("_", " ")}
-                </span>
-              </div>
-            </>
-          )}
-        </div>
-
-        {!order && (
-          <p className="mt-4 text-sm text-gray-500">
-            Order details are not available in this browser session. Your order number is shown above.
-          </p>
-        )}
-
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link
-            href="/shop"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#380712] px-7 py-3 font-medium text-white transition hover:bg-[#541321]"
-          >
-            <ShoppingBag size={17} />
-            <span>Continue shopping</span>
-            <ArrowRight size={16} />
-          </Link>
-
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d8c4bd] px-7 py-3 font-medium text-[#380712] transition hover:bg-[#faf7f2]"
-          >
-            <Home size={17} />
-            <span>Back to home</span>
-          </Link>
-        </div>
-      </section>
-    </main>
-  );
-}
-
-export default function OrderSuccessPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="px-5 py-20 text-center text-gray-600">
-          Loading order details...
-        </main>
-      }
+    <main
+      className={`${bricolage.variable} flex min-h-screen items-center justify-center bg-[#FAF7F2] px-4 py-12 font-[family-name:var(--font-success)] text-[#380712]`}
     >
-      <OrderSuccessContent />
-    </Suspense>
+      <style>{`
+        @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .pop { animation: pop .6s cubic-bezier(.2,.8,.2,1) both; }
+        @media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
+      `}</style>
+
+      <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-[#E9DFD2] bg-white shadow-[0_30px_80px_rgba(56,7,18,0.1)]">
+        {/* Header */}
+        <div className="relative overflow-hidden bg-[#380712] px-6 pb-12 pt-10 text-center sm:px-12">
+          <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-[#D4AF69]/15 blur-3xl" />
+
+          <span className="pop relative mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#E6C47A] to-[#B8893F] text-[#380712] shadow-[0_10px_40px_rgba(212,175,105,0.5)]">
+            <Check size={38} strokeWidth={2.5} />
+          </span>
+
+          <div className="mt-7 flex items-center justify-center gap-3">
+            <span className="h-px w-8 bg-[#D4AF69]" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#E6C47A] sm:text-xs">
+              Thank you for shopping with us
+            </p>
+            <span className="h-px w-8 bg-[#D4AF69]" />
+          </div>
+
+          <h1 className="mt-4 text-[clamp(2rem,5vw,3.2rem)] font-semibold leading-[1.05] tracking-[-0.035em] text-white">
+            Order <span className="text-[#E6C47A]">confirmed.</span>
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-md text-sm font-light leading-7 text-white/75">
+            Your order has been successfully placed. We appreciate your trust
+            in Mydhili Collections.
+          </p>
+        </div>
+
+        <div className="px-6 pb-8 sm:px-12 sm:pb-10">
+          {/* Order details */}
+          <div className="-mt-7 grid overflow-hidden rounded-2xl border border-[#E9DFD2] bg-[#FAF7F2] shadow-[0_16px_40px_rgba(56,7,18,0.08)] sm:grid-cols-2">
+            {orderNumber && (
+              <div className="px-5 py-5 text-center sm:text-left">
+                <p className={label}>Your order number</p>
+                <p className="mt-1.5 break-all text-xl font-semibold tracking-[0.04em]">
+                  {orderNumber}
+                </p>
+              </div>
+            )}
+
+            <div
+              className={`flex items-center justify-center gap-3 px-5 py-5 sm:justify-start ${
+                orderNumber
+                  ? "border-t border-[#E9DFD2] sm:border-l sm:border-t-0"
+                  : "sm:col-span-2"
+              }`}
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#9A6B35]">
+                <Banknote size={20} strokeWidth={1.5} />
+              </span>
+              <div>
+                <p className={label}>Payment method</p>
+                <p className="mt-0.5 text-sm font-semibold">Cash on Delivery</p>
+              </div>
+            </div>
+          </div>
+
+          {/* What happens next */}
+          <p className="mb-4 mt-8 text-sm font-semibold">What happens next</p>
+          <ol className="grid gap-4 sm:grid-cols-3">
+            {steps.map(({ icon: Icon, title, text }) => (
+              <li key={title} className="rounded-2xl border border-[#E9DFD2] p-4">
+                <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#FAF3E8] text-[#9A6B35]">
+                  <Icon size={18} strokeWidth={1.5} />
+                </span>
+                <p className="text-sm font-semibold">{title}</p>
+                <p className="mt-1 text-xs font-light leading-5 text-stone-500">{text}</p>
+              </li>
+            ))}
+          </ol>
+
+          {/* Actions */}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link href="/shop" className={goldBtn}>
+              <span className="inline-flex items-center gap-2.5">
+                <ShoppingBag size={16} />
+                Continue shopping
+              </span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#380712] text-[#E6C47A] transition-transform duration-300 group-hover:rotate-[-45deg]">
+                <ArrowRight size={17} />
+              </span>
+            </Link>
+
+            <Link href="/" className={outlineBtn}>
+              <House size={16} />
+              Back to home
+            </Link>
+          </div>
+
+          <p className="mt-6 text-center text-sm font-light text-stone-500">
+            Questions about your order?{" "}
+            <Link href="/contact" className="font-medium text-[#380712] underline decoration-[#B99A61] underline-offset-4">
+              Contact us
+            </Link>
+          </p>
+        </div>
+      </div>
+    </main>
   );
 }

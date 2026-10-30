@@ -1,5 +1,5 @@
+
 import mongoose, { Schema, type Model } from "mongoose";
-import { boolean } from "zod";
 
 export interface IProductVariant {
   sku: string;
@@ -18,7 +18,7 @@ export interface IProduct {
   compareAtPrice?: number;
   images: string[];
   variants: IProductVariant[];
-  isFeatured: Boolean;
+  isFeatured: boolean;
   isActive: boolean;
 }
 
@@ -46,31 +46,32 @@ const ProductVariantSchema = new Schema<IProductVariant>(
       default: 0,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
-const ProductSchema = new Schema<IProduct>({
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  slug: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    trim: true,
-  },
-   description: {
+const ProductSchema = new Schema<IProduct>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    description: {
       type: String,
       required: true,
     },
-     shortDescription: {
+    shortDescription: {
       type: String,
       default: "",
     },
-     category: {
+    category: {
       type: Schema.Types.ObjectId,
       ref: "Category",
       required: true,
@@ -80,7 +81,7 @@ const ProductSchema = new Schema<IProduct>({
       required: true,
       min: 0,
     },
-     compareAtPrice: {
+    compareAtPrice: {
       type: Number,
       min: 0,
     },
@@ -93,20 +94,19 @@ const ProductSchema = new Schema<IProduct>({
       default: [],
     },
     isFeatured: {
-      type:Boolean,
+      type: Boolean,
       default: false,
     },
-     isActive: {
+    isActive: {
       type: Boolean,
       default: true,
     },
-
-},
+  },
   { timestamps: true }
 );
 
-const Product: Model<IProduct> = 
-(mongoose.models.Product as Model<IProduct>) || 
-mongoose.model<IProduct>("Product",ProductSchema);
+const Product: Model<IProduct> =
+  (mongoose.models.Product as Model<IProduct>) ||
+  mongoose.model<IProduct>("Product", ProductSchema);
 
 export default Product;
