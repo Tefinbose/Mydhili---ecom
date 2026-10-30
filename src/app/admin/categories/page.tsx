@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -12,6 +11,8 @@ import {
   Search,
   X,
   Image as ImageIcon,
+  Sparkles,
+  ExternalLink,
 } from "lucide-react";
 
 type Category = {
@@ -100,29 +101,22 @@ export default function AdminCategoriesPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSaving(true);
     setError("");
     setSuccess("");
 
-    if (!form.name.trim()) {
-      setError("Please enter a category name.");
-      return;
-    }
-
     try {
-      setSaving(true);
+      const url = "/api/admin/categories";
+      const method = editingId ? "PUT" : "POST";
 
-      const response = await fetch("/api/admin/categories", {
-        method: editingId ? "PATCH" : "POST",
+      const payload = editingId ? { ...form, id: editingId } : form;
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...(editingId ? { id: editingId } : {}),
-          name: form.name,
-          description: form.description,
-          image: form.image,
-          isActive: form.isActive,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -131,11 +125,14 @@ export default function AdminCategoriesPage() {
         throw new Error(data.message || "Unable to save category.");
       }
 
-      setSuccess(data.message || "Category saved successfully.");
+      setSuccess(
+        editingId
+          ? "Category updated successfully."
+          : "Category created successfully."
+      );
+
+      closeForm();
       await loadCategories();
-      setShowForm(false);
-      setEditingId(null);
-      setForm(emptyForm);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unable to save category."
@@ -189,123 +186,158 @@ export default function AdminCategoriesPage() {
   const inactiveCount = categories.length - activeCount;
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-8">
-      <div className="mx-auto max-w-7xl">
-        <Link
-          href="/admin"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-stone-500 transition hover:text-[#380712]"
-        >
-          <ArrowLeft size={16} />
-          Back to Dashboard
-        </Link>
-
-        <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+    <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-7xl space-y-8">
+        {/* Header */}
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
-              Store Management
-            </p>
-            <h1 className="mt-2 font-serif text-3xl text-[#380712] sm:text-4xl">
-              Categories
+            <div className="flex items-center gap-2">
+              <span className="h-px w-6 bg-[#A27B35]" />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
+                Curated Collections
+              </p>
+            </div>
+            <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#380712] sm:text-4xl">
+              Store Categories
             </h1>
-            <p className="mt-2 text-sm text-stone-500">
-              Organise your boutique products into collections.
+            <p className="mt-1 text-xs text-stone-500 sm:text-sm">
+              Organise your boutique products into sarees, kurtis, dresses, and festive edits.
             </p>
           </div>
 
-          <button
-            onClick={openAddForm}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#380712] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#54101f]"
-          >
-            <Plus size={17} />
-            Add Category
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/shop"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#D4AF69]/40 bg-white px-4 py-2.5 text-xs font-semibold text-[#380712] shadow-sm transition hover:bg-[#FAF3E8]"
+            >
+              <ExternalLink size={14} className="text-[#9A6B35]" />
+              Shop Collections
+            </Link>
+
+            <button
+              onClick={openAddForm}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#380712] px-5 py-2.5 text-xs font-semibold text-[#F5DFC0] shadow-md transition hover:bg-[#520A1A]"
+            >
+              <Plus size={16} />
+              Add Category
+            </button>
+          </div>
+        </div>
+
+        {/* 3 Metric Cards */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm transition hover:border-[#D4AF69]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#9A6B35]">
+              Total Categories
+            </p>
+            <p className="mt-2 font-serif text-3xl font-bold text-[#380712]">
+              {categories.length}
+            </p>
+            <p className="mt-1 text-xs text-stone-400">Available across catalog</p>
+          </div>
+
+          <div className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm transition hover:border-[#D4AF69]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+              Active in Navigation
+            </p>
+            <p className="mt-2 font-serif text-3xl font-bold text-emerald-700">
+              {activeCount}
+            </p>
+            <p className="mt-1 text-xs text-stone-400">Visible on storefront</p>
+          </div>
+
+          <div className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm transition hover:border-[#D4AF69]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+              Hidden / Draft
+            </p>
+            <p className="mt-2 font-serif text-3xl font-bold text-stone-600">
+              {inactiveCount}
+            </p>
+            <p className="mt-1 text-xs text-stone-400">Archived collections</p>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="flex items-center gap-3 rounded-2xl border border-[#EDE4D9] bg-white px-4 py-3 shadow-sm">
+          <Search size={18} className="text-stone-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search categories by name..."
+            className="w-full text-sm text-[#380712] outline-none placeholder:text-stone-400"
+          />
         </div>
 
         {error && !showForm && (
-          <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
         {success && !showForm && (
-          <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
             {success}
           </div>
         )}
 
-        <div className="mb-7 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-stone-200 bg-white p-5">
-            <p className="text-sm text-stone-500">Total Categories</p>
-            <p className="mt-2 text-3xl font-semibold text-[#380712]">
-              {categories.length}
-            </p>
+        {/* Categories Table */}
+        <section className="overflow-hidden rounded-3xl border border-[#EDE4D9] bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-[#EEE7DE] px-6 py-4">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-[#D4AF69]" />
+              <h2 className="font-serif text-lg font-bold text-[#380712]">
+                Categories Registry
+              </h2>
+            </div>
+            <span className="text-xs text-stone-400">
+              {filteredCategories.length} items
+            </span>
           </div>
 
-          <div className="rounded-xl border border-stone-200 bg-white p-5">
-            <p className="text-sm text-stone-500">Active Categories</p>
-            <p className="mt-2 text-3xl font-semibold text-green-700">
-              {activeCount}
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-stone-200 bg-white p-5">
-            <p className="text-sm text-stone-500">Inactive Categories</p>
-            <p className="mt-2 text-3xl font-semibold text-stone-500">
-              {inactiveCount}
-            </p>
-          </div>
-        </div>
-
-        <div className="mb-5 flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3">
-          <Search size={18} className="text-stone-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search categories..."
-            className="w-full bg-transparent text-sm outline-none"
-          />
-        </div>
-
-        {loading ? (
-          <div className="flex min-h-48 items-center justify-center">
-            <Loader2 className="animate-spin text-[#9A6B35]" size={30} />
-          </div>
-        ) : filteredCategories.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-stone-300 bg-white px-6 py-16 text-center">
-            <Folder className="mx-auto text-stone-300" size={40} />
-            <h3 className="mt-4 font-serif text-xl text-[#380712]">
-              No categories found
-            </h3>
-            <p className="mt-2 text-sm text-stone-500">
-              Add your first category to organise your products.
-            </p>
-            <button
-              onClick={openAddForm}
-              className="mt-5 rounded-lg bg-[#380712] px-5 py-3 text-sm text-white"
-            >
-              Add Category
-            </button>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+          {loading ? (
+            <div className="flex min-h-48 items-center justify-center gap-3">
+              <Loader2 className="animate-spin text-[#9A6B35]" size={24} />
+              <span className="text-sm text-stone-500">Loading categories...</span>
+            </div>
+          ) : filteredCategories.length === 0 ? (
+            <div className="px-6 py-20 text-center">
+              <Folder className="mx-auto text-[#C6AD8A]" size={40} />
+              <h3 className="mt-4 font-serif text-xl font-bold text-[#380712]">
+                No categories found
+              </h3>
+              <p className="mt-1 text-xs text-stone-500">
+                Create your first category to organise your boutique products.
+              </p>
+              <button
+                onClick={openAddForm}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#380712] px-5 py-2.5 text-xs font-semibold text-[#F5DFC0]"
+              >
+                <Plus size={16} />
+                Add Category
+              </button>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[750px] text-left text-sm">
-                <thead className="bg-[#F7F2EA] text-xs uppercase tracking-wider text-stone-500">
-                  <tr>
-                    <th className="px-5 py-4">Category</th>
-                    <th className="px-5 py-4">Slug</th>
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[#EEE7DE] bg-[#FCFAF7] text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9A6B35]">
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-5 py-4">Route Slug</th>
                     <th className="px-5 py-4">Status</th>
-                    <th className="px-5 py-4 text-right">Actions</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="divide-y divide-[#F2ECE4]">
                   {filteredCategories.map((category) => (
-                    <tr key={category._id} className="hover:bg-[#FAF7F2]/60">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#F7F2EA]">
+                    <tr key={category._id} className="transition hover:bg-[#FAF7F2]">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3.5">
+                          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#E9DFD2] bg-[#FAF7F2]">
                             {category.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={category.image}
                                 alt={category.name}
@@ -316,51 +348,51 @@ export default function AdminCategoriesPage() {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-[#380712]">
+                            <p className="font-serif text-sm font-bold text-[#380712]">
                               {category.name}
                             </p>
-                            <p className="mt-1 max-w-xs truncate text-xs text-stone-400">
-                              {category.description || "No description"}
+                            <p className="mt-0.5 max-w-xs truncate text-xs text-stone-400">
+                              {category.description || "No description provided"}
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 text-stone-500">
-                        {category.slug}
+                      <td className="px-5 py-4 font-mono text-xs text-stone-500">
+                        /{category.slug}
                       </td>
 
                       <td className="px-5 py-4">
                         <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                             category.isActive
-                              ? "bg-green-50 text-green-700"
+                              ? "bg-emerald-50 text-emerald-700"
                               : "bg-stone-100 text-stone-500"
                           }`}
                         >
-                          {category.isActive ? "Active" : "Inactive"}
+                          {category.isActive ? "Active" : "Hidden"}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => openEditForm(category)}
-                            className="inline-flex items-center gap-2 rounded-lg border border-stone-200 px-3 py-2 text-xs font-medium text-[#380712] hover:bg-[#FAF7F2]"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-[#D4AF69]/40 bg-[#FAF3E8] px-3.5 py-1.5 text-xs font-semibold text-[#380712] transition hover:bg-[#D4AF69]"
                           >
-                            <Pencil size={14} />
+                            <Pencil size={13} />
                             Edit
                           </button>
 
                           <button
                             onClick={() => toggleStatus(category)}
-                            className={`rounded-lg px-3 py-2 text-xs font-medium ${
+                            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
                               category.isActive
-                                ? "bg-red-50 text-red-600 hover:bg-red-100"
-                                : "bg-green-50 text-green-700 hover:bg-green-100"
+                                ? "border border-red-200 bg-white text-red-600 hover:bg-red-50"
+                                : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                             }`}
                           >
-                            {category.isActive ? "Deactivate" : "Activate"}
+                            {category.isActive ? "Hide" : "Activate"}
                           </button>
                         </div>
                       </td>
@@ -369,124 +401,119 @@ export default function AdminCategoriesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </section>
+      </div>
 
-        {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-            <div className="my-8 w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
-              <div className="mb-6 flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9A6B35]">
-                    Category Management
-                  </p>
-                  <h2 className="mt-2 font-serif text-2xl text-[#380712]">
-                    {editingId ? "Edit Category" : "Add Category"}
-                  </h2>
-                </div>
+      {/* Modal for Add / Edit Category */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="my-8 w-full max-w-lg rounded-3xl border border-[#E9DFD2] bg-white p-6 shadow-2xl sm:p-8">
+            <div className="mb-6 flex items-start justify-between">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
+                  Category Form
+                </p>
+                <h2 className="mt-1 font-serif text-2xl font-bold text-[#380712]">
+                  {editingId ? "Edit Category" : "Add New Category"}
+                </h2>
+              </div>
 
+              <button
+                type="button"
+                onClick={closeForm}
+                className="rounded-full p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-[#380712]">
+                  Category Name *
+                </label>
+                <input
+                  required
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm({ ...form, name: e.target.value })
+                  }
+                  placeholder="e.g. Sarees, Kurtis, Ethnic Gowns"
+                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-2.5 text-sm outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-[#380712]">
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  placeholder="Short note about the collection..."
+                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-2.5 text-sm outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-[#380712]">
+                  Category Image URL
+                </label>
+                <input
+                  type="text"
+                  value={form.image}
+                  onChange={(e) =>
+                    setForm({ ...form, image: e.target.value })
+                  }
+                  placeholder="https://... or /categories/sarees.jpg"
+                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-2.5 text-sm outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                />
+              </div>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E9DFD2] bg-[#FCFAF7] p-3 text-xs font-medium text-stone-700">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) =>
+                    setForm({ ...form, isActive: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded accent-[#380712]"
+                />
+                Active (Displayed on storefront category navigation)
+              </label>
+
+              <div className="flex justify-end gap-3 pt-3">
                 <button
                   type="button"
                   onClick={closeForm}
-                  className="rounded-full p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+                  className="rounded-xl border border-[#E9DFD2] px-5 py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-50"
                 >
-                  <X size={20} />
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#380712] px-6 py-2.5 text-xs font-semibold text-[#F5DFC0] shadow-md transition hover:bg-[#520A1A] disabled:opacity-50"
+                >
+                  {saving && <Loader2 size={14} className="animate-spin text-[#D4AF69]" />}
+                  {saving ? "Saving..." : editingId ? "Update Category" : "Save Category"}
                 </button>
               </div>
-
-              {error && (
-                <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-stone-700">
-                    Category Name *
-                  </label>
-                  <input
-                    required
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm({ ...form, name: e.target.value })
-                    }
-                    placeholder="Example: Sarees"
-                    className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-stone-700">
-                    Description
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={form.description}
-                    onChange={(e) =>
-                      setForm({ ...form, description: e.target.value })
-                    }
-                    placeholder="Write a short category description..."
-                    className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-stone-700">
-                    Category Image URL
-                  </label>
-                  <input
-                    type="url"
-                    value={form.image}
-                    onChange={(e) =>
-                      setForm({ ...form, image: e.target.value })
-                    }
-                    placeholder="https://example.com/category-image.jpg"
-                    className="w-full rounded-lg border border-stone-300 px-4 py-3 outline-none focus:border-[#9A6B35]"
-                  />
-                </div>
-
-                <label className="flex items-center gap-3 text-sm text-stone-700">
-                  <input
-                    type="checkbox"
-                    checked={form.isActive}
-                    onChange={(e) =>
-                      setForm({ ...form, isActive: e.target.checked })
-                    }
-                    className="h-4 w-4 accent-[#380712]"
-                  />
-                  Category is active
-                </label>
-
-                <div className="flex justify-end gap-3 border-t border-stone-100 pt-5">
-                  <button
-                    type="button"
-                    onClick={closeForm}
-                    className="rounded-lg border border-stone-300 px-5 py-3 text-sm text-stone-600 hover:bg-stone-50"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#380712] px-5 py-3 text-sm font-medium text-white hover:bg-[#54101f] disabled:opacity-60"
-                  >
-                    {saving && (
-                      <Loader2 size={16} className="animate-spin" />
-                    )}
-                    {saving
-                      ? "Saving..."
-                      : editingId
-                        ? "Save Changes"
-                        : "Create Category"}
-                  </button>
-                </div>
-              </form>
-            </div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

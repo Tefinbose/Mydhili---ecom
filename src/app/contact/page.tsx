@@ -7,9 +7,9 @@ import { ArrowRight, ArrowUpRight, Clock3, Mail, MapPin, MessageCircle } from "l
 const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-contact", display: "swap" });
 
 // TODO: fill these in. Rows with empty values show a placeholder.
-const email = "";
-const whatsapp = "";
-const address = "";
+const email: string = "";
+const whatsapp: string = "";
+const address: string = "";
 
 const info = [
   { icon: Mail, title: "Email us", value: email, href: email ? `mailto:${email}` : "", empty: "Boutique email will be added soon." },

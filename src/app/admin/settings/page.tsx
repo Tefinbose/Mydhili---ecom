@@ -56,13 +56,13 @@ function SectionTitle({
   description: string;
 }) {
   return (
-    <div className="mb-6 flex items-start gap-3">
-      <div className="rounded-xl bg-[#FAF7F2] p-3 text-[#9A6B35]">
-        <Icon size={21} />
+    <div className="mb-6 flex items-start gap-3.5">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#FAF3E8] text-[#8B2635]">
+        <Icon size={20} />
       </div>
       <div>
-        <h2 className="font-semibold text-[#380712]">{title}</h2>
-        <p className="mt-1 text-sm text-gray-500">{description}</p>
+        <h2 className="font-serif text-lg font-bold text-[#380712]">{title}</h2>
+        <p className="mt-0.5 text-xs text-stone-500">{description}</p>
       </div>
     </div>
   );
@@ -83,7 +83,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-gray-700">
+      <label className="mb-1.5 block text-xs font-semibold text-[#380712]">
         {label}
       </label>
       <input
@@ -92,7 +92,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         min={type === "number" ? "0" : undefined}
-        className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+        className="w-full rounded-xl border border-[#E9DFD2] bg-white px-4 py-3 text-sm text-[#380712] outline-none transition placeholder:text-stone-400 focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
       />
     </div>
   );
@@ -198,29 +198,32 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl">
+    <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-5xl space-y-8">
         {/* Header */}
-        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9A6B35]">
-              Store Management
-            </p>
-            <h1 className="mt-2 font-serif text-3xl font-bold text-[#380712]">
+            <div className="flex items-center gap-2">
+              <span className="h-px w-6 bg-[#A27B35]" />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
+                Store Configuration
+              </p>
+            </div>
+            <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#380712] sm:text-4xl">
               Boutique Settings
             </h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Manage your boutique information, shipping and payment options.
+            <p className="mt-1 text-xs text-stone-500 sm:text-sm">
+              Manage your boutique identity, contact information, shipping rates, and payment options.
             </p>
           </div>
 
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#380712] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#5A1724] disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#380712] px-6 py-2.5 text-xs font-semibold text-[#F5DFC0] shadow-md transition hover:bg-[#520A1A] disabled:opacity-60"
           >
-            <Save size={17} />
-            {saving ? "Saving..." : "Save Settings"}
+            <Save size={15} />
+            {saving ? "Saving Changes..." : "Save Settings"}
           </button>
         </div>
 

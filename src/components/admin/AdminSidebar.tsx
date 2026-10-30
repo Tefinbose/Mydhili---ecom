@@ -1,8 +1,8 @@
-
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -12,10 +12,11 @@ import {
   Users,
   Settings,
   LogOut,
-  Store,
+  ExternalLink,
   ChevronRight,
   Menu,
   X,
+  Sparkles,
 } from "lucide-react";
 
 const navigation = [
@@ -65,7 +66,6 @@ export default function AdminSidebar() {
     if (href === "/admin") {
       return pathname === "/admin";
     }
-
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
@@ -98,72 +98,129 @@ export default function AdminSidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        type="button"
-        onClick={() => setMobileOpen(!mobileOpen)}
-        aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
-        aria-expanded={mobileOpen}
-        className="fixed left-4 top-4 z-[60] flex h-11 w-11 items-center justify-center rounded-xl border border-[#D4AF69]/30 bg-[#380712] text-white shadow-lg md:hidden"
-      >
-        {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-      </button>
+      {/* Mobile Top App Bar */}
+      <div className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-[#E9DFD2] bg-[#380712] px-4 text-white shadow-md lg:hidden">
+        <Link href="/admin" className="flex items-center gap-2.5">
+          <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-[#D4AF69]/40 bg-[#210309] p-1 shadow-inner">
+            <Image
+              src="/logo/logo.png"
+              alt="Mydhili Logo"
+              width={36}
+              height={36}
+              className="object-contain"
+            />
+          </div>
+          <div>
+            <span className="font-serif text-base font-semibold tracking-wide text-[#F5DFC0]">
+              Mydhili
+            </span>
+            <span className="block text-[8px] uppercase tracking-[0.28em] text-[#D4AF69]">
+              Admin
+            </span>
+          </div>
+        </Link>
 
-      {/* Mobile Overlay */}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 rounded-lg border border-[#D4AF69]/40 bg-white/10 px-2.5 py-1.5 text-xs text-[#F5DFC0] transition hover:bg-white/20"
+          >
+            <ExternalLink size={13} />
+            <span className="hidden sm:inline">Store</span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Drawer Overlay */}
       {mobileOpen && (
         <button
           type="button"
           aria-label="Close navigation overlay"
           onClick={closeMobileMenu}
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs lg:hidden"
         />
       )}
 
-      {/* Sidebar */}
+      {/* Main Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex min-h-screen w-64 shrink-0 flex-col border-r border-[#D4AF69]/20 bg-[#380712] text-white shadow-xl transition-transform duration-300 md:sticky md:top-0 md:z-30 md:translate-x-0 md:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-full w-72 shrink-0 flex-col border-r border-[#D4AF69]/20 bg-[#210309] text-white shadow-2xl transition-transform duration-300 lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:translate-x-0 lg:shadow-none ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Brand */}
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-7">
+        {/* Brand Header */}
+        <div className="relative border-b border-[#D4AF69]/15 px-6 py-6">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[#D4AF69]/10 blur-2xl" />
+
+          <div className="flex items-center justify-between">
+            <Link
+              href="/admin"
+              onClick={closeMobileMenu}
+              className="group flex items-center gap-3.5"
+            >
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#D4AF69]/40 bg-[#150105] p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)] transition-transform duration-300 group-hover:scale-105">
+                <Image
+                  src="/logo/logo.png"
+                  alt="Mydhili Logo"
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                />
+              </div>
+
+              <div>
+                <h1 className="font-serif text-lg font-bold tracking-wide text-[#F5DFC0] transition-colors group-hover:text-white">
+                  Mydhili
+                </h1>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-[#D4AF69]">
+                  Boutique Admin
+                </p>
+              </div>
+            </Link>
+
+            <button
+              type="button"
+              onClick={closeMobileMenu}
+              aria-label="Close sidebar"
+              className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Quick link to live store */}
           <Link
-            href="/admin"
-            onClick={closeMobileMenu}
-            className="flex items-center gap-3"
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 flex items-center justify-between rounded-xl border border-[#D4AF69]/30 bg-[#380712]/80 px-3.5 py-2 text-xs font-medium text-[#F5DFC0] transition-all duration-200 hover:border-[#D4AF69] hover:bg-[#380712] hover:text-white"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#D4AF69] text-[#380712]">
-              <Store size={23} />
-            </div>
-
-            <div>
-              <h1 className="font-serif text-xl font-bold tracking-wide">
-                MYDHILI
-              </h1>
-              <p className="mt-0.5 text-[10px] uppercase tracking-[0.25em] text-[#D4AF69]">
-                Boutique Admin
-              </p>
-            </div>
+            <span className="flex items-center gap-2">
+              <Sparkles size={13} className="text-[#D4AF69]" />
+              View live boutique
+            </span>
+            <ExternalLink size={13} />
           </Link>
-
-          <button
-            type="button"
-            onClick={closeMobileMenu}
-            aria-label="Close sidebar"
-            className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white md:hidden"
-          >
-            <X size={19} />
-          </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-7 overflow-y-auto px-4 py-7">
+        {/* Navigation Sections */}
+        <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-white/10">
           <div>
-            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+            <p className="mb-2.5 px-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-[#D4AF69]/70">
               Main Menu
             </p>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
@@ -173,18 +230,21 @@ export default function AdminSidebar() {
                     key={item.href}
                     href={item.href}
                     onClick={closeMobileMenu}
-                    className={`group flex items-center justify-between rounded-xl px-3 py-3 text-sm transition ${
+                    className={`group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${
                       active
-                        ? "bg-[#D4AF69] font-semibold text-[#380712] shadow-md"
-                        : "text-white/70 hover:bg-white/10 hover:text-white"
+                        ? "bg-gradient-to-r from-[#D4AF69] to-[#E8CD8A] font-semibold text-[#210309] shadow-[0_4px_16px_rgba(212,175,105,0.25)]"
+                        : "text-white/70 hover:bg-white/8 hover:text-[#F5DFC0]"
                     }`}
                   >
                     <span className="flex items-center gap-3">
-                      <Icon size={19} />
+                      <Icon
+                        size={18}
+                        className={active ? "text-[#210309]" : "text-[#D4AF69]"}
+                      />
                       {item.name}
                     </span>
 
-                    {active && <ChevronRight size={16} />}
+                    {active && <ChevronRight size={15} strokeWidth={2.5} />}
                   </Link>
                 );
               })}
@@ -192,11 +252,11 @@ export default function AdminSidebar() {
           </div>
 
           <div>
-            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
-              Store Management
+            <p className="mb-2.5 px-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-[#D4AF69]/70">
+              Management
             </p>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {managementNavigation.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
@@ -206,18 +266,21 @@ export default function AdminSidebar() {
                     key={item.href}
                     href={item.href}
                     onClick={closeMobileMenu}
-                    className={`group flex items-center justify-between rounded-xl px-3 py-3 text-sm transition ${
+                    className={`group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${
                       active
-                        ? "bg-[#D4AF69] font-semibold text-[#380712] shadow-md"
-                        : "text-white/70 hover:bg-white/10 hover:text-white"
+                        ? "bg-gradient-to-r from-[#D4AF69] to-[#E8CD8A] font-semibold text-[#210309] shadow-[0_4px_16px_rgba(212,175,105,0.25)]"
+                        : "text-white/70 hover:bg-white/8 hover:text-[#F5DFC0]"
                     }`}
                   >
                     <span className="flex items-center gap-3">
-                      <Icon size={19} />
+                      <Icon
+                        size={18}
+                        className={active ? "text-[#210309]" : "text-[#D4AF69]"}
+                      />
                       {item.name}
                     </span>
 
-                    {active && <ChevronRight size={16} />}
+                    {active && <ChevronRight size={15} strokeWidth={2.5} />}
                   </Link>
                 );
               })}
@@ -225,14 +288,14 @@ export default function AdminSidebar() {
           </div>
         </nav>
 
-        {/* Bottom Section */}
-        <div className="border-t border-white/10 p-4">
-          <div className="mb-4 rounded-xl bg-white/5 p-3">
-            <p className="text-xs font-medium text-white">
-              Mydhili Boutique
+        {/* Footer info & Logout */}
+        <div className="border-t border-[#D4AF69]/15 bg-[#170104] p-4">
+          <div className="mb-3 rounded-xl border border-white/5 bg-white/5 px-3.5 py-2.5">
+            <p className="text-xs font-semibold text-[#F5DFC0]">
+              Mydhili Collections
             </p>
-            <p className="mt-1 text-[11px] text-white/45">
-              Store Administration
+            <p className="mt-0.5 text-[10px] uppercase tracking-wider text-white/45">
+              Secure Storefront Admin
             </p>
           </div>
 
@@ -240,15 +303,11 @@ export default function AdminSidebar() {
             type="button"
             onClick={handleLogout}
             disabled={loggingOut}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-white/70 transition hover:bg-red-500/15 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-red-500/25 bg-red-950/20 px-3.5 py-2.5 text-xs font-semibold text-red-300 transition-all duration-200 hover:border-red-500/50 hover:bg-red-900/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <LogOut size={19} />
-            {loggingOut ? "Logging out..." : "Logout"}
+            <LogOut size={15} />
+            {loggingOut ? "Signing out..." : "Sign Out"}
           </button>
-
-          <p className="mt-5 text-center text-[10px] text-white/30">
-            Mydhili Boutique Admin
-          </p>
         </div>
       </aside>
     </>

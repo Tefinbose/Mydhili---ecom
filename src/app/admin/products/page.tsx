@@ -1,8 +1,8 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Plus,
   Search,
@@ -12,6 +12,10 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Filter,
 } from "lucide-react";
 
 type CategoryInfo = {
@@ -51,7 +55,10 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [productToDelete, setProductToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -88,9 +95,12 @@ export default function AdminProductsPage() {
     setDeletingId(productToDelete.id);
 
     try {
-      const response = await fetch(`/api/admin/products/${productToDelete.id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/admin/products/${productToDelete.id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       const data = await response.json();
 
@@ -101,7 +111,9 @@ export default function AdminProductsPage() {
       setProducts((prev) => prev.filter((p) => p._id !== productToDelete.id));
       setProductToDelete(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete product.");
+      setError(
+        err instanceof Error ? err.message : "Unable to delete product."
+      );
     } finally {
       setDeletingId(null);
     }
@@ -134,7 +146,7 @@ export default function AdminProductsPage() {
       if (found) return found.name;
     }
 
-    return "Uncategorised";
+    return "Boutique Collection";
   }
 
   function getStock(product: Product) {
@@ -144,289 +156,370 @@ export default function AdminProductsPage() {
     );
   }
 
+  const inStockCount = products.filter((p) => getStock(p) > 0).length;
+  const outOfStockCount = products.filter((p) => getStock(p) === 0).length;
+
   return (
-    <div className="min-h-screen px-5 py-8 sm:px-8 lg:px-10">
-      <div className="mx-auto max-w-7xl">
-        {/* Page heading */}
+    <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-7xl space-y-8">
+        {/* Page Header */}
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
-              Store inventory
-            </p>
-
-            <h1 className="mt-2 font-serif text-3xl font-semibold text-[#380712] sm:text-4xl">
-              Products
+            <div className="flex items-center gap-2">
+              <span className="h-px w-6 bg-[#A27B35]" />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
+                Inventory Management
+              </p>
+            </div>
+            <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#380712] sm:text-4xl">
+              Boutique Catalog
             </h1>
-
-            <p className="mt-2 text-sm text-stone-500">
-              Manage your boutique products and inventory.
+            <p className="mt-1 text-xs text-stone-500 sm:text-sm">
+              Manage your sarees, ethnic wear, jewelry, variants, and stock availability.
             </p>
           </div>
 
-          <Link
-            href="/admin/products/new"
-            className="inline-flex items-center justify-center gap-2 bg-[#380712] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5A1020]"
-          >
-            <Plus size={17} />
-            Add product
-          </Link>
-        </div>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#D4AF69]/40 bg-white px-4 py-2.5 text-xs font-semibold text-[#380712] shadow-sm transition hover:bg-[#FAF3E8]"
+            >
+              <ExternalLink size={14} className="text-[#9A6B35]" />
+              Storefront
+            </Link>
 
-        {/* Statistics */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="border border-[#EDE4D9] bg-white p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
-              Total products
-            </p>
-            <p className="mt-2 font-serif text-3xl font-semibold text-[#380712]">
-              {products.length}
-            </p>
-          </div>
-
-          <div className="border border-[#EDE4D9] bg-white p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
-              Active products
-            </p>
-            <p className="mt-2 font-serif text-3xl font-semibold text-[#380712]">
-              {products.filter((product) => product.isActive).length}
-            </p>
-          </div>
-
-          <div className="border border-[#EDE4D9] bg-white p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
-              Featured products
-            </p>
-            <p className="mt-2 font-serif text-3xl font-semibold text-[#380712]">
-              {products.filter((product) => product.isFeatured).length}
-            </p>
+            <Link
+              href="/admin/products/new"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#380712] px-5 py-2.5 text-xs font-semibold text-[#F5DFC0] shadow-md transition hover:bg-[#5A1020]"
+            >
+              <Plus size={16} />
+              Add Product
+            </Link>
           </div>
         </div>
 
-        {/* Search and filters */}
-        <section className="mt-8 border border-[#EDE4D9] bg-white p-5 sm:p-6">
-          <div className="flex flex-col gap-3 md:flex-row">
+        {/* 3 Metric Summary Cards */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm transition hover:border-[#D4AF69]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#9A6B35]">
+              Total Products
+            </p>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="font-serif text-3xl font-bold text-[#380712]">
+                {products.length}
+              </span>
+              <span className="rounded-full bg-[#FAF3E8] px-2.5 py-0.5 text-[11px] font-semibold text-[#8B2635]">
+                {products.filter((p) => p.isFeatured).length} Featured
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm transition hover:border-[#D4AF69]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+              In Stock &amp; Active
+            </p>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="font-serif text-3xl font-bold text-[#380712]">
+                {inStockCount}
+              </span>
+              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                {products.filter((p) => p.isActive).length} Visible
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm transition hover:border-[#D4AF69]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+              Attention Required
+            </p>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="font-serif text-3xl font-bold text-[#380712]">
+                {outOfStockCount}
+              </span>
+              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                outOfStockCount > 0
+                  ? "bg-rose-50 text-rose-700"
+                  : "bg-stone-100 text-stone-600"
+              }`}>
+                {outOfStockCount > 0 ? "Out of Stock" : "All Stocked"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter & Search Bar */}
+        <section className="rounded-2xl border border-[#EDE4D9] bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="relative flex-1">
               <Search
-                size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"
+                size={17}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"
               />
-
               <input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search products..."
-                className="w-full border border-[#E9DFD2] py-3 pl-11 pr-4 text-sm outline-none focus:border-[#9A6B35]"
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search products by title or slug..."
+                className="w-full rounded-xl border border-[#E9DFD2] py-2.5 pl-10 pr-4 text-sm text-[#380712] outline-none transition placeholder:text-stone-400 focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
               />
             </div>
 
-            <select
-              value={selectedCategory}
-              onChange={(event) => setSelectedCategory(event.target.value)}
-              className="border border-[#E9DFD2] bg-white px-4 py-3 text-sm text-[#380712] outline-none focus:border-[#9A6B35]"
-            >
-              <option value="all">All categories</option>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Filter size={15} className="text-[#9A6B35]" />
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="rounded-xl border border-[#E9DFD2] bg-white px-3.5 py-2.5 text-sm text-[#380712] outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              {categories.map((category) => (
-                <option key={category._id} value={category._id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-
-            <button
-              type="button"
-              onClick={loadProducts}
-              disabled={loading}
-              className="inline-flex items-center justify-center gap-2 border border-[#E9DFD2] px-4 py-3 text-sm text-[#380712] hover:bg-[#FAF7F2] disabled:opacity-50"
-            >
-              <RefreshCw
-                size={16}
-                className={loading ? "animate-spin" : ""}
-              />
-              Refresh
-            </button>
+              <button
+                type="button"
+                onClick={loadProducts}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#E9DFD2] bg-[#FAF7F2] px-4 py-2.5 text-sm font-semibold text-[#380712] transition hover:bg-[#FAF3E8] disabled:opacity-50"
+              >
+                <RefreshCw
+                  size={15}
+                  className={loading ? "animate-spin text-[#9A6B35]" : ""}
+                />
+                Refresh
+              </button>
+            </div>
           </div>
         </section>
 
-        {/* Error */}
+        {/* Error notification */}
         {error && (
           <div
             role="alert"
-            className="mt-6 border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+            className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700"
           >
             {error}
           </div>
         )}
 
-        {/* Product table */}
-        <section className="mt-6 overflow-hidden border border-[#EDE4D9] bg-white">
-          <div className="flex items-center justify-between border-b border-[#EEE7DE] px-5 py-4">
-            <h2 className="font-serif text-xl font-semibold text-[#380712]">
-              Product collection
-            </h2>
+        {/* Main Products Table */}
+        <section className="overflow-hidden rounded-3xl border border-[#EDE4D9] bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-[#EEE7DE] px-6 py-4">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-[#D4AF69]" />
+              <h2 className="font-serif text-lg font-bold text-[#380712]">
+                Active Catalog
+              </h2>
+            </div>
 
-            <span className="text-xs text-stone-400">
-              {filteredProducts.length} products
+            <span className="rounded-full bg-[#FAF7F2] px-3 py-1 text-xs font-semibold text-stone-600">
+              Showing {filteredProducts.length} of {products.length} items
             </span>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center gap-3 py-20 text-sm text-stone-500">
-              <RefreshCw size={18} className="animate-spin" />
-              Loading products...
+            <div className="flex items-center justify-center gap-3 py-24 text-sm text-stone-500">
+              <RefreshCw size={20} className="animate-spin text-[#9A6B35]" />
+              Loading boutique collection...
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="px-5 py-20 text-center">
-              <Package
-                size={35}
-                className="mx-auto text-[#C6AD8A]"
-              />
-
-              <h3 className="mt-4 font-serif text-xl font-semibold text-[#380712]">
-                No products found
+            <div className="py-20 text-center">
+              <Package size={40} className="mx-auto text-[#C6AD8A]" />
+              <h3 className="mt-3 font-serif text-xl font-bold text-[#380712]">
+                No products match your criteria
               </h3>
-
-              <p className="mt-2 text-sm text-stone-500">
+              <p className="mx-auto mt-1 max-w-sm text-xs text-stone-500">
                 {products.length === 0
-                  ? "Start building your collection by adding your first product."
-                  : "Try changing your search or category filter."}
+                  ? "Start building your boutique collection by adding your first product."
+                  : "Try clearing your search query or picking a different category."}
               </p>
-
               {products.length === 0 && (
                 <Link
                   href="/admin/products/new"
-                  className="mt-5 inline-flex items-center gap-2 bg-[#380712] px-5 py-3 text-sm font-semibold text-white hover:bg-[#5A1020]"
+                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#380712] px-5 py-2.5 text-xs font-semibold text-[#F5DFC0] hover:bg-[#520A1A]"
                 >
                   <Plus size={16} />
-                  Add your first product
+                  Add First Product
                 </Link>
               )}
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[950px] text-left">
-                <thead className="bg-[#FAF7F2] text-[11px] uppercase tracking-wider text-stone-500">
-                  <tr>
-                    <th className="px-5 py-4 font-semibold">Product</th>
-                    <th className="px-5 py-4 font-semibold">Category</th>
-                    <th className="px-5 py-4 font-semibold">Price</th>
-                    <th className="px-5 py-4 font-semibold">Stock</th>
-                    <th className="px-5 py-4 font-semibold">Status</th>
-                    <th className="px-5 py-4 font-semibold">Store</th>
-                    <th className="px-5 py-4 font-semibold">Actions</th>
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[#EEE7DE] bg-[#FCFAF7] text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9A6B35]">
+                    <th className="px-6 py-4">Product</th>
+                    <th className="px-5 py-4">Category</th>
+                    <th className="px-5 py-4">Price</th>
+                    <th className="px-5 py-4">Inventory</th>
+                    <th className="px-5 py-4">Visibility</th>
+                    <th className="px-5 py-4">Store Preview</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
+                <tbody className="divide-y divide-[#F2ECE4]">
+                  {filteredProducts.map((product) => {
+                    const totalStock = getStock(product);
+                    const isOutOfStock = totalStock === 0;
+                    const isLowStock = totalStock > 0 && totalStock <= 5;
 
-                <tbody className="divide-y divide-[#F0EAE2]">
-                  {filteredProducts.map((product) => (
-                    <tr
-                      key={product._id}
-                      className="transition hover:bg-[#FFFEFC]"
-                    >
-                      {/* Product */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-14 w-14 shrink-0 overflow-hidden bg-[#FAF7F2]">
-                            {product.images?.[0] ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={product.images[0]}
-                                alt={product.name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full items-center justify-center text-[#C6AD8A]">
-                                <Package size={20} />
-                              </div>
+                    return (
+                      <tr
+                        key={product._id}
+                        className="transition-colors hover:bg-[#FAF7F2]"
+                      >
+                        {/* Product Column */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3.5">
+                            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[#E9DFD2] bg-[#FAF7F2]">
+                              {product.images?.[0] ? (
+                                <Image
+                                  src={product.images[0]}
+                                  alt={product.name}
+                                  fill
+                                  sizes="56px"
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-[#C6AD8A]">
+                                  <Package size={20} />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 max-w-xs">
+                              <p className="truncate font-serif text-sm font-bold text-[#380712]">
+                                {product.name}
+                              </p>
+                              <p className="truncate text-xs font-mono text-stone-400">
+                                /{product.slug}
+                              </p>
+                              {product.variants?.length > 0 && (
+                                <p className="mt-0.5 text-[11px] text-[#9A6B35]">
+                                  {product.variants.length} variant{product.variants.length > 1 ? "s" : ""}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Category Column */}
+                        <td className="px-5 py-4">
+                          <span className="inline-flex rounded-full bg-[#FAF3E8] px-3 py-1 text-xs font-semibold text-[#8B2635]">
+                            {getCategoryName(product.category)}
+                          </span>
+                        </td>
+
+                        {/* Price Column */}
+                        <td className="px-5 py-4">
+                          <p className="font-semibold text-[#380712]">
+                            ₹{Number(product.price).toLocaleString("en-IN")}
+                          </p>
+                          {product.compareAtPrice &&
+                            product.compareAtPrice > product.price && (
+                              <p className="text-xs text-stone-400 line-through">
+                                ₹{Number(product.compareAtPrice).toLocaleString("en-IN")}
+                              </p>
+                            )}
+                        </td>
+
+                        {/* Stock Column */}
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              isOutOfStock
+                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                : isLowStock
+                                ? "bg-amber-50 text-amber-800 border border-amber-200"
+                                : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                isOutOfStock
+                                  ? "bg-rose-600"
+                                  : isLowStock
+                                  ? "bg-amber-600"
+                                  : "bg-emerald-600"
+                              }`}
+                            />
+                            {isOutOfStock
+                              ? "Out of stock"
+                              : isLowStock
+                              ? `Low stock (${totalStock})`
+                              : `In stock (${totalStock})`}
+                          </span>
+                        </td>
+
+                        {/* Status Column */}
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col items-start gap-1">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                                product.isActive
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : "bg-stone-100 text-stone-500"
+                              }`}
+                            >
+                              {product.isActive ? "Active" : "Draft"}
+                            </span>
+
+                            {product.isFeatured && (
+                              <span className="inline-flex rounded-full bg-[#FBF3E5] px-2 py-0.5 text-[10px] font-semibold text-[#8A5A22]">
+                                ★ Featured
+                              </span>
                             )}
                           </div>
+                        </td>
 
-                          <div>
-                            <p className="font-medium text-[#380712]">
-                              {product.name}
-                            </p>
-                            <p className="mt-1 text-xs text-stone-400">
-                              {product.slug}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Category */}
-                      <td className="px-5 py-4 text-sm text-stone-600">
-                        {getCategoryName(product.category)}
-                      </td>
-
-                      {/* Price */}
-                      <td className="px-5 py-4 text-sm font-semibold text-[#380712]">
-                        ₹{Number(product.price).toLocaleString("en-IN")}
-                      </td>
-
-                      {/* Stock */}
-                      <td className="px-5 py-4 text-sm text-stone-600">
-                        {getStock(product)}
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-5 py-4">
-                        <span
-                          className={`inline-flex px-2.5 py-1 text-xs font-medium ${
-                            product.isActive
-                              ? "bg-green-50 text-green-700"
-                              : "bg-stone-100 text-stone-600"
-                          }`}
-                        >
-                          {product.isActive ? "Active" : "Inactive"}
-                        </span>
-
-                        {product.isFeatured && (
-                          <span className="mt-1 inline-flex bg-[#FBF3E5] px-2.5 py-1 text-xs font-medium text-[#8A5A22]">
-                            Featured
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Store */}
-                      <td className="px-5 py-4">
-                        <Link
-                          href={`/products/${product.slug}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#8B2635] hover:text-[#380712]"
-                        >
-                          View product
-                          <ExternalLink size={13} />
-                        </Link>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
+                        {/* Store Link Column */}
+                        <td className="px-5 py-4">
                           <Link
-                            href={`/admin/products/${product._id}/edit`}
-                            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#FAF3E8] px-3.5 py-2 text-xs font-semibold text-[#380712] transition hover:bg-[#D4AF69]"
+                            href={`/products/${product.slug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#8B2635] transition hover:text-[#380712] hover:underline"
                           >
-                            <Pencil size={13} />
-                            Edit
+                            Live view
+                            <ExternalLink size={12} />
                           </Link>
+                        </td>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setProductToDelete({
-                                id: product._id,
-                                name: product.name,
-                              })
-                            }
-                            aria-label={`Delete ${product.name}`}
-                            className="inline-flex items-center rounded-lg border border-red-200 bg-white p-2 text-xs text-red-600 transition hover:bg-red-50"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        {/* Actions Column */}
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              href={`/admin/products/${product._id}/edit`}
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-[#D4AF69]/40 bg-[#FAF3E8] px-3.5 py-2 text-xs font-semibold text-[#380712] shadow-sm transition hover:bg-[#D4AF69]"
+                            >
+                              <Pencil size={13} />
+                              Edit
+                            </Link>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setProductToDelete({
+                                  id: product._id,
+                                  name: product.name,
+                                })
+                              }
+                              aria-label={`Delete ${product.name}`}
+                              className="inline-flex items-center rounded-xl border border-red-200 bg-white p-2 text-red-600 shadow-sm transition hover:bg-red-50 hover:text-red-700"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -434,21 +527,26 @@ export default function AdminProductsPage() {
         </section>
       </div>
 
-      {/* Delete confirmation modal */}
+      {/* Delete Confirmation Modal */}
       {productToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-[#E9DFD2] bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-3xl border border-[#E9DFD2] bg-white p-6 shadow-2xl">
             <div className="flex items-center gap-3 text-red-600">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
-                <AlertTriangle size={20} />
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-100">
+                <AlertTriangle size={22} />
               </div>
-              <h3 className="font-serif text-lg font-semibold text-[#380712]">
-                Delete product?
-              </h3>
+              <div>
+                <h3 className="font-serif text-lg font-bold text-[#380712]">
+                  Delete Product?
+                </h3>
+                <p className="text-xs text-stone-500">
+                  This action is permanent and cannot be reversed.
+                </p>
+              </div>
             </div>
 
-            <p className="mt-3 text-sm text-stone-600">
-              Are you sure you want to delete <span className="font-semibold text-stone-900">&ldquo;{productToDelete.name}&rdquo;</span>? This will permanently remove the product from your store.
+            <p className="mt-4 rounded-xl bg-[#FAF7F2] p-3 text-sm text-stone-700">
+              Are you sure you want to delete <span className="font-bold text-[#380712]">&ldquo;{productToDelete.name}&rdquo;</span> from your boutique catalog?
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -456,7 +554,7 @@ export default function AdminProductsPage() {
                 type="button"
                 onClick={() => setProductToDelete(null)}
                 disabled={Boolean(deletingId)}
-                className="rounded-xl border border-[#E9DFD2] px-4 py-2 text-sm font-semibold text-stone-600 hover:bg-stone-50"
+                className="rounded-xl border border-[#E9DFD2] px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-50"
               >
                 Cancel
               </button>
@@ -465,10 +563,10 @@ export default function AdminProductsPage() {
                 type="button"
                 onClick={handleDeleteConfirmed}
                 disabled={Boolean(deletingId)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-5 py-2 text-xs font-semibold text-white shadow-md transition hover:bg-red-700 disabled:opacity-50"
               >
-                {deletingId && <RefreshCw size={14} className="animate-spin" />}
-                {deletingId ? "Deleting..." : "Yes, delete"}
+                {deletingId && <RefreshCw size={13} className="animate-spin" />}
+                {deletingId ? "Deleting..." : "Yes, Delete Product"}
               </button>
             </div>
           </div>

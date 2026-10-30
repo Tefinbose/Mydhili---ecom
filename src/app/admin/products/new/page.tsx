@@ -1,8 +1,8 @@
-
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -10,6 +10,8 @@ import {
   Loader2,
   Plus,
   Trash2,
+  Sparkles,
+  ExternalLink,
 } from "lucide-react";
 
 type Category = {
@@ -81,7 +83,6 @@ export default function NewProductPage() {
 
   function addImage() {
     const value = imageInput.trim();
-
     if (!value) return;
 
     if (value.startsWith("/")) {
@@ -93,11 +94,9 @@ export default function NewProductPage() {
 
     try {
       const url = new URL(value);
-
       if (url.protocol !== "http:" && url.protocol !== "https:") {
         throw new Error("Invalid URL");
       }
-
       setImages((current) => [...current, value]);
       setImageInput("");
       setError("");
@@ -141,11 +140,11 @@ export default function NewProductPage() {
         body: JSON.stringify({
           ...form,
           price: Number(form.price),
-          compareAtPrice: form.compareAtPrice,
+          compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : undefined,
           images,
           variants: variants.map((variant) => ({
             ...variant,
-            stock: Number(variant.stock),
+            stock: Number(variant.stock || 0),
           })),
         }),
       });
@@ -168,75 +167,82 @@ export default function NewProductPage() {
   }
 
   const inputClass =
-    "mt-2 w-full rounded-xl border border-[#E8DED2] bg-white px-4 py-3 text-sm text-[#380712] outline-none transition placeholder:text-stone-400 focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20";
+    "mt-2 w-full rounded-xl border border-[#E9DFD2] bg-white px-4 py-3 text-sm text-[#380712] outline-none transition placeholder:text-stone-400 focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20";
 
   const labelClass =
     "text-sm font-semibold text-[#380712]";
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-5xl space-y-6">
         <Link
           href="/admin/products"
-          className="inline-flex items-center gap-2 text-sm font-medium text-[#8B2635] hover:text-[#380712]"
+          className="inline-flex items-center gap-2 text-sm font-medium text-[#8B2635] transition hover:text-[#380712]"
         >
-          <ArrowLeft size={17} />
-          Back to products
+          <ArrowLeft size={16} />
+          Back to boutique catalog
         </Link>
 
-        <div className="mb-8 mt-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9A6B35]">
-            Product management
-          </p>
-          <h1 className="mt-2 font-serif text-3xl font-semibold text-[#380712] sm:text-4xl">
-            Add new product
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="h-px w-6 bg-[#A27B35]" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
+              New Creation
+            </p>
+          </div>
+          <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#380712] sm:text-4xl">
+            Add Boutique Product
           </h1>
-          <p className="mt-2 text-sm text-stone-500">
-            Add a product to your Mydhili Collections store.
+          <p className="mt-1 text-xs text-stone-500 sm:text-sm">
+            Publish a new saree, kurti, ethnic attire or accessory to your Mydhili Collections store.
           </p>
         </div>
 
         {error && (
           <div
             role="alert"
-            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700"
           >
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <section className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm sm:p-7">
-            <h2 className="font-serif text-xl font-semibold text-[#380712]">
-              Basic information
+        <form onSubmit={handleSubmit} className="space-y-7">
+          {/* Basic Info Card */}
+          <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="font-serif text-xl font-bold text-[#380712]">
+              Basic Information
             </h2>
+            <p className="mt-0.5 text-xs text-stone-500">
+              Provide product titles, category, and descriptive storytelling.
+            </p>
 
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className={labelClass}>Product name *</label>
+                <label className={labelClass}>Product Name *</label>
                 <input
                   required
                   value={form.name}
                   onChange={(e) => updateField("name", e.target.value)}
-                  placeholder="e.g. Premium Floral Silk Saree"
+                  placeholder="e.g. Royal Maroon Kanjivaram Silk Saree"
                   className={inputClass}
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className={labelClass}>Short description</label>
+                <label className={labelClass}>Short Description (Catalog subtitle)</label>
                 <input
                   value={form.shortDescription}
                   onChange={(e) =>
                     updateField("shortDescription", e.target.value)
                   }
-                  placeholder="A short description for product cards"
+                  placeholder="e.g. Handwoven pure silk with authentic zari weave"
                   className={inputClass}
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className={labelClass}>Full description *</label>
+                <label className={labelClass}>Full Description *</label>
                 <textarea
                   required
                   rows={5}
@@ -244,113 +250,113 @@ export default function NewProductPage() {
                   onChange={(e) =>
                     updateField("description", e.target.value)
                   }
-                  placeholder="Describe the product, fabric, fit, details, and care instructions..."
+                  placeholder="Describe the silhouette, fabric quality, weave heritage, occasion styling, and care guidance..."
                   className={inputClass}
                 />
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <label className={labelClass}>Category *</label>
                 <select
                   required
                   value={form.category}
                   onChange={(e) => updateField("category", e.target.value)}
                   className={inputClass}
-                  disabled={loadingCategories}
                 >
-                  <option value="">
-                    {loadingCategories ? "Loading categories..." : "Select category"}
-                  </option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
+                  <option value="">Select a boutique collection...</option>
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.name}
                     </option>
                   ))}
                 </select>
-                {!loadingCategories && categories.length === 0 && (
-                  <p className="mt-2 text-xs text-amber-700">
-                    No active categories found. Add a category before creating a product.
-                  </p>
-                )}
               </div>
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm sm:p-7">
-            <h2 className="font-serif text-xl font-semibold text-[#380712]">
-              Pricing
+          {/* Pricing Card */}
+          <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="font-serif text-xl font-bold text-[#380712]">
+              Pricing &amp; Value
             </h2>
+            <p className="mt-0.5 text-xs text-stone-500">
+              Enter customer retail price and optional strikethrough compare-at price.
+            </p>
 
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               <div>
-                <label className={labelClass}>Selling price (₹) *</label>
+                <label className={labelClass}>Selling Price (₹) *</label>
                 <input
                   required
+                  type="number"
                   min="0"
                   step="0.01"
-                  type="number"
                   value={form.price}
                   onChange={(e) => updateField("price", e.target.value)}
-                  placeholder="1499"
+                  placeholder="3499"
                   className={inputClass}
                 />
               </div>
 
               <div>
-                <label className={labelClass}>Compare-at price (₹)</label>
+                <label className={labelClass}>Compare-at Price (₹, optional)</label>
                 <input
+                  type="number"
                   min="0"
                   step="0.01"
-                  type="number"
                   value={form.compareAtPrice}
-                  onChange={(e) =>
-                    updateField("compareAtPrice", e.target.value)
-                  }
-                  placeholder="1999"
+                  onChange={(e) => updateField("compareAtPrice", e.target.value)}
+                  placeholder="4999 (shows as strikethrough discount)"
                   className={inputClass}
                 />
               </div>
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm sm:p-7">
-            <h2 className="font-serif text-xl font-semibold text-[#380712]">
-              Product images
-            </h2>
-            <p className="mt-1 text-sm text-stone-500">
-              Add publicly accessible image URLs for this product.
-            </p>
+          {/* Images Card */}
+          <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="font-serif text-xl font-bold text-[#380712]">
+                  Gallery Images
+                </h2>
+                <p className="mt-0.5 text-xs text-stone-500">
+                  Add image URLs (relative paths like /products/... or full https:// links).
+                </p>
+              </div>
+              <ImagePlus size={22} className="text-[#9A6B35]" />
+            </div>
 
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <input
                 value={imageInput}
                 onChange={(e) => setImageInput(e.target.value)}
-                placeholder="https://example.com/product-image.jpg"
-                className={inputClass + " mt-0"}
+                placeholder="Paste image URL (e.g. https://... or /products/saree.jpg)"
+                className="min-w-0 flex-1 rounded-xl border border-[#E9DFD2] px-4 py-3 text-sm text-[#380712] outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
               />
               <button
                 type="button"
                 onClick={addImage}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#380712] px-5 py-3 text-sm font-semibold text-white hover:bg-[#5A1020]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FAF3E8] px-5 py-3 text-sm font-semibold text-[#380712] transition hover:bg-[#D4AF69]"
               >
-                <ImagePlus size={17} />
-                Add image
+                <Plus size={16} />
+                Add Image
               </button>
             </div>
 
             {images.length > 0 && (
-              <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {images.map((image, index) => (
                   <div
                     key={`${image}-${index}`}
-                    className="overflow-hidden rounded-xl border border-[#E8DED2]"
+                    className="group relative rounded-2xl border border-[#E9DFD2] p-1.5 shadow-xs transition hover:border-[#D4AF69]"
                   >
-                    <div className="aspect-square bg-[#FAF7F2]">
+                    <div className="relative aspect-square overflow-hidden rounded-xl bg-[#FAF7F2]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={image}
                         alt={`Product image ${index + 1}`}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
                       />
                     </div>
                     <button
@@ -360,35 +366,39 @@ export default function NewProductPage() {
                           current.filter((_, i) => i !== index)
                         )
                       }
-                      className="flex w-full items-center justify-center gap-2 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
+                      aria-label={`Remove image ${index + 1}`}
+                      className="absolute right-3 top-3 rounded-full bg-white p-1.5 text-red-600 shadow-md transition hover:bg-red-50"
                     >
-                      <Trash2 size={14} />
-                      Remove
+                      <Trash2 size={13} />
                     </button>
+                    <p className="mt-1.5 truncate text-center text-[10px] font-medium uppercase tracking-wider text-stone-400">
+                      {index === 0 ? "★ Primary Cover" : `Angle ${index + 1}`}
+                    </p>
                   </div>
                 ))}
               </div>
             )}
           </section>
 
-          <section className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm sm:p-7">
+          {/* Variants Card */}
+          <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="font-serif text-xl font-semibold text-[#380712]">
-                  Product variants
+                <h2 className="font-serif text-xl font-bold text-[#380712]">
+                  Product Variants &amp; Inventory
                 </h2>
-                <p className="mt-1 text-sm text-stone-500">
-                  Add sizes, colours, SKU codes, and stock quantities.
+                <p className="mt-0.5 text-xs text-stone-500">
+                  Configure sizes, colors, and stock quantities. SKU will be auto-generated if omitted.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={addVariant}
-                className="inline-flex items-center gap-2 rounded-xl border border-[#D4AF69] px-4 py-2.5 text-sm font-semibold text-[#6F451F] hover:bg-[#FBF5E9]"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[#D4AF69] bg-[#FAF3E8] px-4 py-2 text-xs font-semibold text-[#380712] transition hover:bg-[#D4AF69]"
               >
-                <Plus size={16} />
-                Add variant
+                <Plus size={15} />
+                Add Variant
               </button>
             </div>
 
@@ -396,46 +406,46 @@ export default function NewProductPage() {
               {variants.map((variant, index) => (
                 <div
                   key={index}
-                  className="grid gap-3 rounded-xl border border-[#EDE4D9] bg-[#FFFEFC] p-4 sm:grid-cols-2 lg:grid-cols-4"
+                  className="grid gap-3.5 rounded-2xl border border-[#EDE4D9] bg-[#FCFAF7] p-4 sm:grid-cols-2 lg:grid-cols-4"
                 >
                   <div>
-                    <label className={labelClass}>SKU</label>
+                    <label className={labelClass}>SKU (Optional)</label>
                     <input
                       value={variant.sku}
                       onChange={(e) =>
                         updateVariant(index, "sku", e.target.value)
                       }
-                      placeholder="MYD-001"
+                      placeholder="Auto-generated if empty"
                       className={inputClass}
                     />
                   </div>
 
                   <div>
-                    <label className={labelClass}>Size</label>
+                    <label className={labelClass}>Size *</label>
                     <input
                       value={variant.size}
                       onChange={(e) =>
                         updateVariant(index, "size", e.target.value)
                       }
-                      placeholder="Free Size / M / L"
+                      placeholder="e.g. Free Size, S, M, L, XL"
                       className={inputClass}
                     />
                   </div>
 
                   <div>
-                    <label className={labelClass}>Colour</label>
+                    <label className={labelClass}>Colour *</label>
                     <input
                       value={variant.color}
                       onChange={(e) =>
                         updateVariant(index, "color", e.target.value)
                       }
-                      placeholder="Maroon"
+                      placeholder="e.g. Royal Maroon, Mustard Gold"
                       className={inputClass}
                     />
                   </div>
 
                   <div>
-                    <label className={labelClass}>Stock quantity</label>
+                    <label className={labelClass}>Stock Quantity *</label>
                     <input
                       type="number"
                       min="0"
@@ -449,52 +459,66 @@ export default function NewProductPage() {
                   </div>
 
                   {variants.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeVariant(index)}
-                      className="inline-flex items-center gap-2 text-xs font-semibold text-red-600 hover:text-red-800 sm:col-span-2 lg:col-span-4"
-                    >
-                      <Trash2 size={14} />
-                      Remove this variant
-                    </button>
+                    <div className="flex justify-end sm:col-span-2 lg:col-span-4">
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(index)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 transition hover:text-red-800"
+                      >
+                        <Trash2 size={13} />
+                        Remove this variant
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#EDE4D9] bg-white p-5 shadow-sm sm:p-7">
-            <h2 className="font-serif text-xl font-semibold text-[#380712]">
-              Store visibility
+          {/* Visibility Card */}
+          <section className="rounded-3xl border border-[#EDE4D9] bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="font-serif text-xl font-bold text-[#380712]">
+              Storefront Display Options
             </h2>
 
             <div className="mt-5 space-y-4">
-              <label className="flex items-center gap-3 text-sm text-stone-700">
+              <label className="flex cursor-pointer items-center gap-3.5 rounded-2xl border border-[#EDE4D9] bg-[#FCFAF7] p-4 text-sm font-medium text-stone-700 transition hover:border-[#D4AF69]">
                 <input
                   type="checkbox"
                   checked={form.isActive}
                   onChange={(e) => updateField("isActive", e.target.checked)}
-                  className="h-4 w-4 accent-[#380712]"
+                  className="h-4 w-4 rounded accent-[#380712]"
                 />
-                Product is active and visible in the store
+                <div>
+                  <span className="font-semibold text-[#380712]">Active in Store</span>
+                  <p className="text-xs text-stone-500">
+                    Product is immediately discoverable, visible and purchasable by customers.
+                  </p>
+                </div>
               </label>
 
-              <label className="flex items-center gap-3 text-sm text-stone-700">
+              <label className="flex cursor-pointer items-center gap-3.5 rounded-2xl border border-[#EDE4D9] bg-[#FCFAF7] p-4 text-sm font-medium text-stone-700 transition hover:border-[#D4AF69]">
                 <input
                   type="checkbox"
                   checked={form.isFeatured}
                   onChange={(e) => updateField("isFeatured", e.target.checked)}
-                  className="h-4 w-4 accent-[#380712]"
+                  className="h-4 w-4 rounded accent-[#380712]"
                 />
-                Mark as a featured product
+                <div>
+                  <span className="font-semibold text-[#380712]">Featured Collection</span>
+                  <p className="text-xs text-stone-500">
+                    Showcase prominently on the Homepage featured spotlight carousel.
+                  </p>
+                </div>
               </label>
             </div>
           </section>
 
+          {/* Action CTAs */}
           <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
             <Link
               href="/admin/products"
-              className="rounded-xl border border-[#E5D8C8] px-6 py-3 text-center text-sm font-semibold text-[#6F451F] hover:bg-white"
+              className="rounded-xl border border-[#E9DFD2] bg-white px-6 py-3 text-center text-sm font-semibold text-stone-600 transition hover:bg-[#FAF7F2]"
             >
               Cancel
             </Link>
@@ -502,15 +526,15 @@ export default function NewProductPage() {
             <button
               type="submit"
               disabled={saving || loadingCategories || categories.length === 0}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#380712] px-7 py-3 text-sm font-semibold text-white transition hover:bg-[#5A1020] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#380712] px-8 py-3 text-sm font-semibold text-[#F5DFC0] shadow-md transition hover:bg-[#520A1A] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? (
                 <>
-                  <Loader2 size={17} className="animate-spin" />
-                  Saving product...
+                  <Loader2 size={16} className="animate-spin text-[#D4AF69]" />
+                  Publishing product...
                 </>
               ) : (
-                "Save product"
+                "Publish Product to Store"
               )}
             </button>
           </div>
