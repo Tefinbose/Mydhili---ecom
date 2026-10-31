@@ -100,6 +100,7 @@ async function getAllCategories(): Promise<CategoryLink[]> {
 }
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  await connection();
   const { slug } = await params;
   const category = await getCategoryInfo(slug);
 

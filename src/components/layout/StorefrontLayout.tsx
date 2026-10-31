@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import InitialPreloader from "@/components/common/InitialPreloader";
+import LoadingScreen from "@/components/common/LoadingScreen";
 
 function StorefrontLayoutContent({
   children,
@@ -20,6 +22,7 @@ function StorefrontLayoutContent({
 
   return (
     <>
+      <InitialPreloader />
       <Navbar />
       <main>{children}</main>
       <Footer />
@@ -35,9 +38,7 @@ export default function StorefrontLayout({
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#FAF7F2]">
-          {children}
-        </div>
+        <LoadingScreen fullScreen theme="royal-maroon" duration={1400} />
       }
     >
       <StorefrontLayoutContent>

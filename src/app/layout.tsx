@@ -51,7 +51,33 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var isDev = ${process.env.NODE_ENV === "development"};
+                var path = window.location.pathname || "";
+                if (path.startsWith("/admin")) {
+                  document.documentElement.classList.add("splash-dismissed");
+                } else if (!isDev && !window.location.search.includes("preview_loader=1") && sessionStorage.getItem("mydhili_splash_seen") === "true") {
+                  document.documentElement.classList.add("splash-dismissed");
+                }
+              } catch(e) {}
+            `,
+          }}
+        />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              .splash-dismissed #initial-preloader-root {
+                display: none !important;
+              }
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-screen bg-[#FAF7F2] text-stone-900 antialiased">
         <CartProvider>
           <WishlistProvider>
