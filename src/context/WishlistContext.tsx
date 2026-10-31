@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -16,6 +15,8 @@ export type WishlistItem = {
   name: string;
   price: number;
   image: string;
+  category?: string;
+  inStock?: boolean;
 };
 
 type WishlistContextType = {
@@ -23,9 +24,9 @@ type WishlistContextType = {
   itemCount: number;
   isLoaded: boolean;
   addToWishlist: (item: WishlistItem) => void;
-  removeFromWishlist: (id: string) => void;
+  removeFromWishlist: (idOrSlug: string) => void;
   toggleWishlist: (item: WishlistItem) => void;
-  isInWishlist: (id: string) => boolean;
+  isInWishlist: (idOrSlug: string) => boolean;
   clearWishlist: () => void;
 };
 
@@ -43,12 +44,23 @@ export function WishlistProvider({
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Safely restore wishlist from localStorage on mount and sanitize data
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setItems(parsed);
+        if (Array.isArray(parsed)) {
+          // Sanitize: filter out legacy string IDs or corrupted items
+          const validItems = parsed.filter(
+            (item): item is WishlistItem =>
+              typeof item === "object" &&
+              item !== null &&
+              typeof item.productId === "string" &&
+              typeof item.name === "string"
+          );
+          setItems(validItems);
+        }
       }
     } catch (error) {
       console.error("Wishlist loading error:", error);
@@ -57,34 +69,60 @@ export function WishlistProvider({
     }
   }, []);
 
+  // Sync state to localStorage whenever items change
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      } catch (error) {
+        console.error("Failed to save wishlist to storage:", error);
+      }
     }
   }, [items, isLoaded]);
 
   const addToWishlist = useCallback((item: WishlistItem) => {
     setItems((prev) =>
-      prev.some((saved) => saved.productId === item.productId)
+      prev.some(
+        (saved) =>
+          saved.productId === item.productId ||
+          (Boolean(saved.slug) && saved.slug === item.slug)
+      )
         ? prev
         : [...prev, item]
     );
   }, []);
 
-  const removeFromWishlist = useCallback((id: string) => {
-    setItems((prev) => prev.filter((item) => item.productId !== id));
-  }, []);
-
-  const toggleWishlist = useCallback((item: WishlistItem) => {
+  const removeFromWishlist = useCallback((idOrSlug: string) => {
     setItems((prev) =>
-      prev.some((saved) => saved.productId === item.productId)
-        ? prev.filter((saved) => saved.productId !== item.productId)
-        : [...prev, item]
+      prev.filter(
+        (item) => item.productId !== idOrSlug && item.slug !== idOrSlug
+      )
     );
   }, []);
 
+  const toggleWishlist = useCallback((item: WishlistItem) => {
+    setItems((prev) => {
+      const exists = prev.some(
+        (saved) =>
+          saved.productId === item.productId ||
+          (Boolean(saved.slug) && saved.slug === item.slug)
+      );
+      if (exists) {
+        return prev.filter(
+          (saved) =>
+            saved.productId !== item.productId &&
+            (!saved.slug || saved.slug !== item.slug)
+        );
+      }
+      return [...prev, item];
+    });
+  }, []);
+
   const isInWishlist = useCallback(
-    (id: string) => items.some((item) => item.productId === id),
+    (idOrSlug: string) =>
+      items.some(
+        (item) => item.productId === idOrSlug || item.slug === idOrSlug
+      ),
     [items]
   );
 

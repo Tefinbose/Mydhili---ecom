@@ -11,6 +11,7 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
+import { useWishlist } from "@/context/WishlistContext";
 
 type Category = {
   _id?: string;
@@ -51,6 +52,7 @@ const fallbackImage =
   "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=85";
 
 export default function ShopProducts() {
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -58,7 +60,6 @@ export default function ShopProducts() {
   const [sort, setSort] = useState<SortOption>("newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [wishlist, setWishlist] = useState<string[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const loadShopData = useCallback(async () => {
@@ -144,12 +145,23 @@ export default function ShopProducts() {
     });
   }, [products, selectedCategory, search, sort]);
 
-  const toggleWishlist = (slug: string) => {
-    setWishlist((current) =>
-      current.includes(slug)
-        ? current.filter((item) => item !== slug)
-        : [...current, slug]
-    );
+  const handleToggleWishlist = (product: Product) => {
+    const validImage =
+      product.images?.find(
+        (img) => typeof img === "string" && img.trim().length > 0
+      ) || fallbackImage;
+
+    toggleWishlist({
+      productId: product._id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      image: validImage,
+      category:
+        typeof product.category === "object"
+          ? product.category?.name
+          : undefined,
+    });
   };
 
   const categoryButtons = (
@@ -391,18 +403,23 @@ export default function ShopProducts() {
 
                       <button
                         type="button"
-                        onClick={() => toggleWishlist(product.slug)}
+                        onClick={() => handleToggleWishlist(product)}
                         aria-label={
-                          wishlist.includes(product.slug)
+                          isInWishlist(product._id)
                             ? `Remove ${product.name} from wishlist`
                             : `Add ${product.name} to wishlist`
                         }
-                        className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-[#380712] transition hover:bg-[#380712] hover:text-white sm:right-3 sm:top-3"
+                        aria-pressed={isInWishlist(product._id)}
+                        className={`absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full shadow-sm transition sm:right-3 sm:top-3 ${
+                          isInWishlist(product._id)
+                            ? "bg-[#380712] text-[#E6C47A]"
+                            : "bg-white/95 text-[#380712] hover:bg-[#380712] hover:text-[#E6C47A]"
+                        }`}
                       >
                         <Heart
                           size={17}
                           fill={
-                            wishlist.includes(product.slug)
+                            isInWishlist(product._id)
                               ? "currentColor"
                               : "none"
                           }

@@ -15,6 +15,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 type Category = {
   _id: string;
@@ -36,6 +37,7 @@ const INSTAGRAM_URL = "https://www.instagram.com/mydhilicollections2010/";
 
 export default function Navbar() {
   const { itemCount, isLoaded } = useCart();
+  const { itemCount: wishlistCount, isLoaded: isWishlistLoaded } = useWishlist();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -299,10 +301,15 @@ export default function Navbar() {
 
             <Link
               href="/wishlist"
-              aria-label="Wishlist"
-              className={`${iconBtnClass} hidden sm:flex`}
+              aria-label={`Wishlist with ${wishlistCount} items`}
+              className={`${iconBtnClass} relative flex`}
             >
               <Heart size={19} strokeWidth={1.5} />
+              {isWishlistLoaded && wishlistCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#380712] px-1 text-[9px] font-semibold leading-none text-white ring-2 ring-[#FAF7F2]">
+                  {wishlistCount > 99 ? "99+" : wishlistCount}
+                </span>
+              )}
             </Link>
 
             <Link
@@ -366,21 +373,42 @@ export default function Navbar() {
               Explore Mydhili
             </p>
 
-            {mobileLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={closeMenus}
-                tabIndex={menuOpen ? 0 : -1}
-                className="group flex items-center justify-between border-b border-[#380712]/[0.08] py-3 text-sm text-[#380712] transition hover:pl-2 hover:text-[#9A6B35]"
-              >
-                <span>{item.label}</span>
-                <ArrowUpRight
-                  size={15}
-                  className="text-[#9A6B35] opacity-0 transition group-hover:opacity-100"
-                />
-              </Link>
-            ))}
+            {mobileLinks.map((item) => {
+              const isWishlist = item.href === "/wishlist";
+              const isCart = item.href === "/cart";
+              const count = isWishlist
+                ? isWishlistLoaded
+                  ? wishlistCount
+                  : 0
+                : isCart
+                ? isLoaded
+                  ? itemCount
+                  : 0
+                : 0;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeMenus}
+                  tabIndex={menuOpen ? 0 : -1}
+                  className="group flex items-center justify-between border-b border-[#380712]/[0.08] py-3 text-sm text-[#380712] transition hover:pl-2 hover:text-[#9A6B35]"
+                >
+                  <span className="flex items-center gap-2">
+                    {item.label}
+                    {count > 0 && (
+                      <span className="rounded-full bg-[#380712] px-2 py-0.5 text-[10px] font-semibold text-[#E6C47A]">
+                        {count}
+                      </span>
+                    )}
+                  </span>
+                  <ArrowUpRight
+                    size={15}
+                    className="text-[#9A6B35] opacity-0 transition group-hover:opacity-100"
+                  />
+                </Link>
+              );
+            })}
 
             <div className="border-b border-[#380712]/[0.08] py-4">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9A6B35]">

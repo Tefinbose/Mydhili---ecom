@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Bricolage_Grotesque } from "next/font/google";
 import { Heart, ShoppingBag, ArrowRight, ArrowUpRight } from "lucide-react";
+import { useWishlist } from "@/context/WishlistContext";
 
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -34,12 +35,10 @@ const fallbackImages = [
   "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=800&q=85",
 ];
 
-const WISHLIST_KEY = "mydhili-wishlist";
-
 export default function FeaturedProducts() {
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [wishlist, setWishlist] = useState<string[]>([]);
   const [brokenImages, setBrokenImages] = useState<string[]>([]);
 
   // Load products
@@ -71,33 +70,6 @@ export default function FeaturedProducts() {
       cancelled = true;
     };
   }, []);
-
-  // Restore wishlist (per browser)
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(WISHLIST_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setWishlist(parsed);
-      }
-    } catch {
-      /* storage unavailable, ignore */
-    }
-  }, []);
-
-  function toggleWishlist(productId: string) {
-    setWishlist((current) => {
-      const next = current.includes(productId)
-        ? current.filter((id) => id !== productId)
-        : [...current, productId];
-      try {
-        localStorage.setItem(WISHLIST_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }
 
   const markBroken = (key: string) =>
     setBrokenImages((prev) => (prev.includes(key) ? prev : [...prev, key]));
@@ -180,7 +152,7 @@ export default function FeaturedProducts() {
 
               const primaryBroken = brokenImages.includes(`${product._id}-1`);
               const secondaryBroken = brokenImages.includes(`${product._id}-2`);
-              const isWishlisted = wishlist.includes(product._id);
+              const isWishlisted = isInWishlist(product._id);
 
               const hasDiscount =
                 !!product.compareAtPrice && product.compareAtPrice > product.price;
@@ -244,7 +216,16 @@ export default function FeaturedProducts() {
                     {/* Wishlist */}
                     <button
                       type="button"
-                      onClick={() => toggleWishlist(product._id)}
+                      onClick={() =>
+                        toggleWishlist({
+                          productId: product._id,
+                          slug: product.slug,
+                          name: product.name,
+                          price: product.price,
+                          image: primary,
+                          category: product.category?.name,
+                        })
+                      }
                       aria-label={
                         isWishlisted
                           ? `Remove ${product.name} from wishlist`
