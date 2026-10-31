@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { connection } from "next/server";
 import { Bricolage_Grotesque } from "next/font/google";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { connectToDatabase } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import ShopProducts from "@/components/shop/ShopProducts";
-
-import Image from "next/image";
 
 export const instant = false;
 
@@ -23,29 +22,22 @@ interface CategoryPageProps {
 
 type CategoryLink = { name: string; slug: string };
 
+// Replace with your own photos, e.g. "/categories/sarees.jpg"
+const u = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1920&q=85`;
+
 const categoryBackgrounds: Record<string, string> = {
-  sarees:
-    "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1920&q=85",
-  kurtis:
-    "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=1920&q=85",
-  "ethnic-wear":
-    "https://images.unsplash.com/photo-1583391733956-6c78276477e4?auto=format&fit=crop&w=1920&q=85",
-  dresses:
-    "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1920&q=85",
-  blouses:
-    "https://images.unsplash.com/photo-1610030469668-93282980b190?auto=format&fit=crop&w=1920&q=85",
-  accessories:
-    "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1920&q=85",
-  lehengas:
-    "https://images.unsplash.com/photo-1583391733975-021b3d5b0359?auto=format&fit=crop&w=1920&q=85",
-  "salwar-suits":
-    "https://images.unsplash.com/photo-1583391733956-6c78276477e4?auto=format&fit=crop&w=1920&q=85",
-  jeans:
-    "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1920&q=85",
+  sarees: u("photo-1610030469983-98e550d6193c"),
+  kurtis: u("photo-1594633312681-425c7b97ccd1"),
+  "ethnic-wear": u("photo-1583391733956-6c78276477e4"),
+  dresses: u("photo-1617627143750-d86bc21e42bb"),
+  blouses: u("photo-1610030469668-93282980b190"),
+  accessories: u("photo-1535632066927-ab7c9ab60908"),
+  lehengas: u("photo-1583391733975-021b3d5b0359"),
+  "salwar-suits": u("photo-1583391733956-6c78276477e4"),
+  jeans: u("photo-1541099649105-f69ad21f3246"),
 };
 
-const fallbackBackground =
-  "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1920&q=85";
+const fallbackBackground = u("photo-1610030469983-98e550d6193c");
 
 function formatTitle(slug: string): string {
   return slug
@@ -68,30 +60,23 @@ async function getCategoryInfo(slug: string) {
 
     if (category && typeof category === "object") {
       const cat = category as { name?: string; description?: string; image?: string };
-      const hasValidImage = Boolean(
-        cat.image &&
-        cat.image.trim().length > 0 &&
-        (cat.image.startsWith("http://") ||
-          cat.image.startsWith("https://") ||
-          cat.image.startsWith("/")) &&
-        !cat.image.startsWith("/uploads/")
-      );
+      const img = cat.image?.trim() ?? "";
+      const hasValidImage =
+        img.length > 0 &&
+        (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("/")) &&
+        !img.startsWith("/uploads/");
 
       return {
         name: cat.name || formatTitle(slug),
         description: cat.description || fallbackDescription(slug),
-        image: hasValidImage ? cat.image! : defaultBg,
+        image: hasValidImage ? img : defaultBg,
       };
     }
   } catch (error) {
     console.error("Failed to fetch category info:", error);
   }
 
-  return {
-    name: formatTitle(slug),
-    description: fallbackDescription(slug),
-    image: defaultBg,
-  };
+  return { name: formatTitle(slug), description: fallbackDescription(slug), image: defaultBg };
 }
 
 async function getAllCategories(): Promise<CategoryLink[]> {
@@ -107,12 +92,11 @@ async function getAllCategories(): Promise<CategoryLink[]> {
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const name = formatTitle(slug);
-  const description = fallbackDescription(slug);
+  const category = await getCategoryInfo(slug);
 
   return {
-    title: `${name} Collection | Mydhili Boutique`,
-    description,
+    title: `${category.name} Collection | Mydhili Collections`,
+    description: category.description,
   };
 }
 
@@ -124,59 +108,72 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
   return (
     <div className={`${bricolage.variable} min-h-screen bg-[#FAF7F2] font-[family-name:var(--font-category-page)] text-[#380712]`}>
-      {/* Category Hero Banner with Visible Background Image */}
-      <section className="relative min-h-[380px] overflow-hidden bg-[#24040B] px-5 py-14 text-center text-white sm:min-h-[440px] sm:py-20 flex items-center justify-center">
-        {/* Category Specific Background Image Container */}
-        <div className="absolute inset-0 z-0">
+      <style>{`
+        @keyframes catZoom { from { transform: scale(1); } to { transform: scale(1.08); } }
+        @keyframes catUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .cat-zoom { animation: catZoom 12s ease-out forwards; }
+        .cat-up { opacity: 0; animation: catUp .8s cubic-bezier(.2,.7,.2,1) forwards; }
+        @media (prefers-reduced-motion: reduce) { .cat-zoom, .cat-up { animation: none; } .cat-up { opacity: 1; } }
+      `}</style>
+
+      <section className="relative isolate flex min-h-[400px] items-center justify-center overflow-hidden bg-[#24040B] px-5 py-14 text-center text-white sm:min-h-[460px] sm:py-20">
+        <div className="absolute inset-0 -z-20">
           <Image
             src={category.image}
-            alt={`${category.name} Collection`}
+            alt=""
             fill
             priority
             unoptimized
             sizes="100vw"
-            className="object-cover object-center transform scale-105 motion-safe:transition-transform motion-safe:duration-1000"
+            className="cat-zoom object-cover object-center"
           />
-          {/* Balanced Luxury Overlays - Dark enough for readable text, clear enough to see the image vividly */}
-          <div className="absolute inset-0 bg-[#24040B]/40" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#24040B] via-[#24040B]/35 to-[#24040B]/25" />
-          <div className="absolute inset-0 bg-radial-vignette opacity-50" />
         </div>
 
-        {/* Ambient Gold Glows */}
-        <div className="pointer-events-none absolute -left-20 -top-20 z-[1] h-72 w-72 rounded-full bg-[#D4AF69]/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -right-16 z-[1] h-72 w-72 rounded-full bg-[#D4AF69]/20 blur-3xl" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-px bg-gradient-to-r from-transparent via-[#D4AF69]/70 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-px bg-gradient-to-r from-transparent via-[#D4AF69]/70 to-transparent" />
+        {/* Overlays */}
+        <div className="absolute inset-0 -z-10 bg-[#24040B]/45" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#24040B] via-[#24040B]/35 to-[#24040B]/30" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(36,4,11,0.55)_100%)]" />
+        <div className="pointer-events-none absolute -left-20 -top-20 -z-10 h-72 w-72 rounded-full bg-[#D4AF69]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -right-16 -z-10 h-72 w-72 rounded-full bg-[#D4AF69]/15 blur-3xl" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4AF69]/70 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#D4AF69]/70 to-transparent" />
 
-        <div className="relative z-10 mx-auto max-w-3xl">
-          <nav aria-label="Breadcrumbs" className="mb-5 flex items-center justify-center gap-2 text-xs text-[#E6C47A] drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+        <div className="relative mx-auto max-w-3xl">
+          <nav aria-label="Breadcrumbs" className="cat-up mb-5 flex items-center justify-center gap-2 text-xs text-[#E6C47A]">
             <Link href="/" className="transition hover:text-white">Home</Link>
             <ChevronRight size={12} className="text-[#D4AF69]" />
             <Link href="/shop" className="transition hover:text-white">Collections</Link>
             <ChevronRight size={12} className="text-[#D4AF69]" />
-            <span className="font-semibold text-white tracking-wide">{category.name}</span>
+            <span className="font-semibold tracking-wide text-white">{category.name}</span>
           </nav>
 
-          <div className="mb-4 flex items-center justify-center gap-3">
+          <div className="cat-up mb-4 flex items-center justify-center gap-3" style={{ animationDelay: "0.08s" }}>
             <span className="h-px w-8 bg-[#D4AF69]" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#E6C47A] drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-xs">
-              Mydhili Signature Collection
-            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#E6C47A] sm:text-xs">Mydhili Signature Collection</span>
             <span className="h-px w-8 bg-[#D4AF69]" />
           </div>
 
-          <h1 className="font-serif text-[clamp(2.4rem,6vw,4.2rem)] font-bold leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)]">
+          <h1
+            className="cat-up text-[clamp(2.4rem,6vw,4.4rem)] font-semibold leading-[1.05] tracking-[-0.035em] drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]"
+            style={{ animationDelay: "0.16s" }}
+          >
             {category.name}
             <span className="text-[#E6C47A]">.</span>
           </h1>
 
-          <p className="mx-auto mt-4 max-w-xl text-sm font-normal leading-relaxed text-stone-100 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] sm:text-base">
+          <p
+            className="cat-up mx-auto mt-4 max-w-xl text-sm font-light leading-7 text-white/90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)] sm:text-base"
+            style={{ animationDelay: "0.24s" }}
+          >
             {category.description}
           </p>
 
           {categories.length > 1 && (
-            <nav aria-label="Browse categories" className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
+            <nav
+              aria-label="Browse categories"
+              className="cat-up mt-8 flex flex-wrap items-center justify-center gap-2.5"
+              style={{ animationDelay: "0.32s" }}
+            >
               {categories.map((c) => {
                 const active = c.slug.toLowerCase() === activeSlug;
                 return (
@@ -186,7 +183,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                     aria-current={active ? "page" : undefined}
                     className={`rounded-full border px-4 py-2 text-xs font-medium backdrop-blur-md transition-all duration-300 ${
                       active
-                        ? "border-[#D4AF69] bg-[#D4AF69] text-[#380712] shadow-md font-semibold scale-105"
+                        ? "border-[#D4AF69] bg-[#D4AF69] font-semibold text-[#380712] shadow-md"
                         : "border-white/30 bg-black/40 text-white hover:border-[#D4AF69] hover:bg-[#D4AF69]/25 hover:text-[#E6C47A]"
                     }`}
                   >
@@ -197,15 +194,14 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             </nav>
           )}
 
-          <div className="mt-7">
-            <Link
-              href="/shop"
-              className="group inline-flex items-center gap-2 border-b border-[#D4AF69] pb-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#E6C47A] drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] transition hover:border-white hover:text-white"
-            >
-              <ArrowLeft size={14} className="transition-transform duration-300 group-hover:-translate-x-1" />
-              <span>Browse all collections</span>
-            </Link>
-          </div>
+          <Link
+            href="/shop"
+            className="cat-up group mt-7 inline-flex items-center gap-2 border-b border-[#D4AF69] pb-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#E6C47A] transition hover:border-white hover:text-white"
+            style={{ animationDelay: "0.4s" }}
+          >
+            <ArrowLeft size={14} className="transition-transform duration-300 group-hover:-translate-x-1" />
+            Browse all collections
+          </Link>
         </div>
       </section>
 
