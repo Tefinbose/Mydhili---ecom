@@ -166,7 +166,7 @@ export default function FeaturedProducts() {
 
               return (
                 <article key={product._id} className="group min-w-0">
-                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#380712] to-[#6D2636] shadow-[0_10px_30px_rgba(56,7,18,0.07)] transition-all duration-500 group-hover:-translate-y-1 group-hover:shadow-[0_22px_50px_rgba(56,7,18,0.18)]">
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#380712] to-[#6D2636] shadow-[0_10px_30px_rgba(56,7,18,0.07)] transition-all duration-500 ease-out group-hover:-translate-y-1.5 group-hover:shadow-[0_24px_50px_rgba(56,7,18,0.22)]">
                     <Link
                       href={`/products/${product.slug}`}
                       className="relative block aspect-[3/4] overflow-hidden"

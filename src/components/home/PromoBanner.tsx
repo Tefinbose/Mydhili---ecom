@@ -120,7 +120,7 @@ export default function PromoBanner() {
               </div>
 
               {/* Floating label */}
-              <div className="absolute -left-12 bottom-12 rounded-2xl border border-[#D4AF69]/40 bg-[#210309]/85 px-5 py-3.5 backdrop-blur-md">
+              <div className="animate-float-slow absolute -left-12 bottom-12 rounded-2xl border border-[#D4AF69]/40 bg-[#210309]/85 px-5 py-3.5 backdrop-blur-md shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
                 <p className="text-[9px] font-medium uppercase tracking-[0.28em] text-[#D4AF69]">
                   Mydhili Collections
                 </p>

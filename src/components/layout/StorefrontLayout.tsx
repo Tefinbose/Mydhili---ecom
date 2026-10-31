@@ -24,7 +24,7 @@ function StorefrontLayoutContent({
     <>
       <InitialPreloader />
       <Navbar />
-      <main>{children}</main>
+      <main className="animate-page-reveal">{children}</main>
       <Footer />
     </>
   );

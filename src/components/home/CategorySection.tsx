@@ -37,46 +37,49 @@ const categoryStyles: Record<string, CategoryStyle> = {
   kurtis: {
     subtitle: "Everyday elegance",
     icon: Shirt,
-    image:
-      "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=800&q=85",
+    image: "/categories/kurtis.avif",
   },
   sarees: {
     subtitle: "Timeless traditions",
     icon: Flower2,
-    image:
-      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=85",
+    image: "/categories/saree.jpg",
   },
   "ethnic-wear": {
     subtitle: "Celebrate in style",
     icon: Crown,
-    image:
-      "https://images.unsplash.com/photo-1583391733956-6c78276477e4?auto=format&fit=crop&w=800&q=85",
+    image: "/categories/ethnicwear.jpg",
   },
   dresses: {
     subtitle: "Modern silhouettes",
     icon: ShoppingBag,
-    image:
-      "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=85",
+    image: "/categories/dresses.jpg",
   },
   blouses: {
     subtitle: "Beautiful finishing touches",
     icon: Gem,
-    image:
-      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=85",
+    image: "/categories/blouse.webp",
   },
   accessories: {
     subtitle: "The perfect details",
     icon: Gift,
-    image:
-      "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=85",
+    image: "/categories/accessories.jpg",
+  },
+  lehengas: {
+    subtitle: "Royal celebrations",
+    icon: Crown,
+    image: "/categories/lehenga.jpg",
+  },
+  "salwar-suits": {
+    subtitle: "Graceful silhouettes",
+    icon: Shirt,
+    image: "/categories/salvarsuits.jpg",
   },
 };
 
 const fallbackStyle: CategoryStyle = {
   subtitle: "Explore the collection",
   icon: ShoppingBag,
-  image:
-    "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=85",
+  image: "/categories/saree.jpg",
 };
 
 // 1.5 cards on mobile, 2 on small, 3 on tablet, 4 on desktop

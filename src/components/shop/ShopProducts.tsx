@@ -383,8 +383,8 @@ export default function ShopProducts({
                     : "";
 
                 return (
-                  <article key={product._id} className="group min-w-0">
-                    <div className="relative overflow-hidden bg-[#F0E7DC]">
+                  <article key={product._id} className="group min-w-0 transition-all duration-500 hover:-translate-y-1.5">
+                    <div className="relative overflow-hidden rounded-2xl bg-[#F0E7DC] shadow-[0_4px_20px_rgba(56,7,18,0.05)] transition-all duration-500 group-hover:shadow-[0_18px_40px_rgba(56,7,18,0.14)]">
                       <Link
                         href={`/products/${product.slug}`}
                         className="block"

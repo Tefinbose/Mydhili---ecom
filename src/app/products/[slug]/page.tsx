@@ -122,7 +122,7 @@ export default async function ProductDetailPage({
                   fill
                   priority
                   sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover"
+                  className="object-cover transition-transform duration-700 ease-out hover:scale-105"
                 />
               ) : (
                 <div className="flex flex-col items-center gap-3 px-8 text-center text-[#E6C47A]">
@@ -141,13 +141,13 @@ export default async function ProductDetailPage({
             {images.length > 1 && (
               <div className="mt-3 grid grid-cols-4 gap-3">
                 {images.slice(1, 5).map((image, index) => (
-                  <div key={`${image}-${index}`} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-[#F0E9DF]">
+                  <div key={`${image}-${index}`} className="group/thumb relative aspect-[3/4] overflow-hidden rounded-xl bg-[#F0E9DF]">
                     <Image
                       src={image}
                       alt={`${product.name} - view ${index + 2}`}
                       fill
                       sizes="(max-width: 1024px) 25vw, 12vw"
-                      className="object-cover"
+                      className="object-cover transition-transform duration-500 ease-out group-hover/thumb:scale-110"
                     />
                   </div>
                 ))}

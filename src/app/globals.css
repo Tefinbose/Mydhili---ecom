@@ -23,6 +23,103 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background-color: #380712;
+  color: #E6C47A;
+}
+
+/* Custom Boutique Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF7F2;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D4AF69;
+  border-radius: 9999px;
+  border: 2px solid #FAF7F2;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9A6B35;
+}
+
+/* Global Smooth Page Entrance Animation */
+@keyframes pageReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-reveal {
+  animation: pageReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Tactile Click Smooth Feedback (buttons & links) */
+button:not(:disabled):active,
+a:not(:disabled):active {
+  transform: scale(0.985);
+  transition: transform 0.12s ease;
+}
+
+/* Smooth Floating & Ambient Lighting Keyframes */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+@keyframes softGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 16px rgba(212, 175, 105, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(212, 175, 105, 0.38);
+  }
+}
+
+.animate-soft-glow {
+  animation: softGlowPulse 4s ease-in-out infinite;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-page-reveal,
+  .animate-float-slow,
+  .animate-soft-glow,
+  .animate-spin-slow,
+  .animate-spin-reverse-slow,
+  .animate-ambient-glow,
+  .animate-gold-circle-glance {
+    animation: none !important;
+  }
 }
 
 /* Luxury Golden Shimmer & Loading Keyframes */
