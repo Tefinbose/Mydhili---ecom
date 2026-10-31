@@ -13,15 +13,16 @@ function createSlug(value: string) {
 }
 
 export async function GET() {
-  try {
-    const session = await getAdminSession();
+  const session = await getAdminSession();
 
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized access." },
-        { status: 401 }
-      );
-    }
+  if (!session) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized access." },
+      { status: 401 }
+    );
+  }
+
+  try {
 
     await connectToDatabase();
 

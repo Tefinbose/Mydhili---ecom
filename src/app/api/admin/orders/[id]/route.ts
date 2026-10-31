@@ -12,15 +12,16 @@ export async function GET(
   _request: NextRequest,
   { params }: RouteContext
 ) {
-  try {
-    const session = await getAdminSession();
+  const session = await getAdminSession();
 
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized access." },
-        { status: 401 }
-      );
-    }
+  if (!session) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized access." },
+      { status: 401 }
+    );
+  }
+
+  try {
 
     const { id } = await params;
 

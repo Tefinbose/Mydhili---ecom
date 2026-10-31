@@ -6,14 +6,15 @@ import Product from "@/models/Product";
 import Category from "@/models/Category";
 
 export async function GET(request: NextRequest) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized access." },
+      { status: 401 }
+    );
+  }
+
   try {
-    const session = await getAdminSession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized access." },
-        { status: 401 }
-      );
-    }
 
     await connectToDatabase();
 

@@ -7,15 +7,16 @@ import Product from "@/models/Product";
 import StoreSettings from "@/models/StoreSettings";
 
 export async function GET() {
-  try {
-    const session = await getAdminSession();
+  const session = await getAdminSession();
 
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  if (!session) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  try {
 
     await connectToDatabase();
 

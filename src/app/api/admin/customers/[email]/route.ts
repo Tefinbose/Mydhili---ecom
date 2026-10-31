@@ -12,15 +12,16 @@ export async function GET(
   _request: NextRequest,
   context: RouteContext
 ) {
-  try {
-    const session = await getAdminSession();
+  const session = await getAdminSession();
 
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  if (!session) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  try {
 
     const { email } = await context.params;
     const customerEmail = decodeURIComponent(email).trim().toLowerCase();
