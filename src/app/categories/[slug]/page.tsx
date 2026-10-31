@@ -22,22 +22,30 @@ interface CategoryPageProps {
 
 type CategoryLink = { name: string; slug: string };
 
-// Replace with your own photos, e.g. "/categories/sarees.jpg"
-const u = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1920&q=85`;
-
 const categoryBackgrounds: Record<string, string> = {
-  sarees: u("photo-1610030469983-98e550d6193c"),
-  kurtis: u("photo-1594633312681-425c7b97ccd1"),
-  "ethnic-wear": u("photo-1583391733956-6c78276477e4"),
-  dresses: u("photo-1617627143750-d86bc21e42bb"),
-  blouses: u("photo-1610030469668-93282980b190"),
-  accessories: u("photo-1535632066927-ab7c9ab60908"),
-  lehengas: u("photo-1583391733975-021b3d5b0359"),
-  "salwar-suits": u("photo-1583391733956-6c78276477e4"),
-  jeans: u("photo-1541099649105-f69ad21f3246"),
+  sarees: "/categories/saree.jpg",
+  saree: "/categories/saree.jpg",
+  kurtis: "/categories/kurtis.avif",
+  kurti: "/categories/kurtis.avif",
+  "ethnic-wear": "/categories/ethnicwear.jpg",
+  ethnicwear: "/categories/ethnicwear.jpg",
+  dresses: "/categories/dresses.jpg",
+  dress: "/categories/dresses.jpg",
+  blouses: "/categories/blouse.webp",
+  blouse: "/categories/blouse.webp",
+  accessories: "/categories/accessories.jpg",
+  accessory: "/categories/accessories.jpg",
+  lehengas: "/categories/lehenga.jpg",
+  lehenga: "/categories/lehenga.jpg",
+  "salwar-suits": "/categories/salvarsuits.jpg",
+  salwarsuits: "/categories/salvarsuits.jpg",
+  "salvar-suits": "/categories/salvarsuits.jpg",
+  salvarsuit: "/categories/salvarsuits.jpg",
+  "salwar-suit": "/categories/salvarsuits.jpg",
+  jeans: "/categories/dresses.jpg",
 };
 
-const fallbackBackground = u("photo-1610030469983-98e550d6193c");
+const fallbackBackground = "/categories/saree.jpg";
 
 function formatTitle(slug: string): string {
   return slug
@@ -61,15 +69,16 @@ async function getCategoryInfo(slug: string) {
     if (category && typeof category === "object") {
       const cat = category as { name?: string; description?: string; image?: string };
       const img = cat.image?.trim() ?? "";
-      const hasValidImage =
+      const hasCustomImage =
         img.length > 0 &&
         (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("/")) &&
-        !img.startsWith("/uploads/");
+        !img.startsWith("/uploads/") &&
+        !img.includes("images.unsplash.com");
 
       return {
         name: cat.name || formatTitle(slug),
         description: cat.description || fallbackDescription(slug),
-        image: hasValidImage ? img : defaultBg,
+        image: categoryBackgrounds[normalizedSlug] || (hasCustomImage ? img : defaultBg),
       };
     }
   } catch (error) {
