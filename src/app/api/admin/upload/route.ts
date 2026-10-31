@@ -58,10 +58,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if Vercel Blob is configured via BLOB_READ_WRITE_TOKEN
-    const isVercelBlobConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    const isVercelBlobConfigured = Boolean(blobToken);
 
     let uploadDir = "";
-    if (!isVercelBlobConfigured) {
+    if (isVercelBlobConfigured) {
+      // Vercel Blob is active
+    } else if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+      // Running on Vercel serverless where local disk is read-only (EROFS)
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Vercel Blob storage is not configured. Please add BLOB_READ_WRITE_TOKEN in your Vercel Project Settings -> Environment Variables and redeploy.",
+        },
+        { status: 500 }
+      );
+    } else {
       uploadDir = path.join(process.cwd(), "public", "uploads");
       await mkdir(uploadDir, { recursive: true });
     }
@@ -99,6 +112,7 @@ export async function POST(request: NextRequest) {
         const blob = await put(`uploads/${fileName}`, file, {
           access: "public",
           contentType: file.type,
+          token: blobToken,
         });
         uploadedUrls.push(blob.url);
       } else {
