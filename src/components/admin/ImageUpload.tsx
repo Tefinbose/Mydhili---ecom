@@ -192,60 +192,128 @@ export default function ImageUpload({
         </div>
       )}
 
-      {/* Drag & Drop Upload Zone */}
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        className={`relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-200 ${
-          isDragging
-            ? "border-[#9A6B35] bg-[#FAF3E8]/80 scale-[1.01]"
-            : "border-[#D4AF69]/40 bg-[#FAF7F2]/60 hover:border-[#9A6B35] hover:bg-[#FAF3E8]/40"
-        }`}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple={multiple}
-          onChange={handleFileSelect}
-          className="hidden"
-        />
+      {/* Single image uploaded state */}
+      {!multiple && currentImages.length > 0 ? (
+        <div className="relative overflow-hidden rounded-2xl border border-[#E9DFD2] bg-white p-3 shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[#E9DFD2] bg-[#FAF7F2]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={currentImages[0]}
+                alt="Selected preview"
+                className="h-full w-full object-cover"
+              />
+            </div>
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm border border-[#E9DFD2]">
-          {uploading ? (
-            <Loader2 size={24} className="animate-spin text-[#9A6B35]" />
-          ) : (
-            <UploadCloud size={24} className="text-[#8B2635]" />
-          )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                <CheckCircle2 size={14} />
+                <span>Image uploaded</span>
+              </div>
+              <p
+                className="mt-0.5 truncate text-[11px] text-stone-500"
+                title={currentImages[0]}
+              >
+                {currentImages[0].startsWith("/uploads/")
+                  ? currentImages[0].replace("/uploads/", "")
+                  : currentImages[0]}
+              </p>
+
+              <div className="mt-2.5 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1 text-[11px] font-medium text-stone-700 transition hover:bg-stone-50"
+                >
+                  <UploadCloud size={12} />
+                  Change
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPreviewModalUrl(currentImages[0])}
+                  className="inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1 text-[11px] font-medium text-stone-700 transition hover:bg-stone-50"
+                >
+                  <Eye size={12} />
+                  View
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleRemove(0)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 transition hover:bg-red-100"
+                >
+                  <Trash2 size={12} />
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
         </div>
+      ) : (
+        /* Drag & Drop Upload Zone */
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-200 ${
+            isDragging
+              ? "border-[#9A6B35] bg-[#FAF3E8]/80 scale-[1.01]"
+              : "border-[#D4AF69]/40 bg-[#FAF7F2]/60 hover:border-[#9A6B35] hover:bg-[#FAF3E8]/40"
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple={multiple}
+            onChange={handleFileSelect}
+            className="hidden"
+          />
 
-        <div className="mt-3">
-          <p className="text-xs font-semibold text-[#380712]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm border border-[#E9DFD2]">
             {uploading ? (
-              <span className="flex items-center gap-1.5">
-                <Loader2 size={13} className="animate-spin" />
-                Uploading...
-              </span>
+              <Loader2 size={24} className="animate-spin text-[#9A6B35]" />
             ) : (
-              <span>
-                <span className="text-[#8B2635] underline decoration-[#D4AF69] underline-offset-4">
-                  Click to upload
-                </span>{" "}
-                or drag and drop files here
-              </span>
+              <UploadCloud size={24} className="text-[#8B2635]" />
             )}
-          </p>
-          <p className="mt-1 text-[11px] text-stone-500">
-            PNG, JPG, WebP, SVG up to 15MB
-            {multiple ? ` · Up to ${maxFiles} images` : " · Single image"}
-          </p>
+          </div>
+
+          <div className="mt-3">
+            <p className="text-xs font-semibold text-[#380712]">
+              {uploading ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 size={13} className="animate-spin" />
+                  Uploading...
+                </span>
+              ) : (
+                <span>
+                  <span className="text-[#8B2635] underline decoration-[#D4AF69] underline-offset-4">
+                    Click to upload
+                  </span>{" "}
+                  or drag and drop files here
+                </span>
+              )}
+            </p>
+            <p className="mt-1 text-[11px] text-stone-500">
+              PNG, JPG, WebP, SVG up to 15MB
+              {multiple ? ` · Up to ${maxFiles} images` : " · Single image"}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -262,8 +330,8 @@ export default function ImageUpload({
         </div>
       )}
 
-      {/* Preview Section */}
-      {currentImages.length > 0 && (
+      {/* Multiple Images Preview Section */}
+      {multiple && currentImages.length > 0 && (
         <div className="space-y-2 pt-1">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">

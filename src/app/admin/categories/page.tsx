@@ -404,9 +404,10 @@ export default function AdminCategoriesPage() {
 
       {/* Modal for Add / Edit Category */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="my-8 w-full max-w-lg rounded-3xl border border-[#E9DFD2] bg-white p-6 shadow-2xl sm:p-8">
-            <div className="mb-6 flex items-start justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 sm:p-6 backdrop-blur-xs">
+          <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-[#E9DFD2] bg-white shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex shrink-0 items-start justify-between border-b border-[#EEE7DE] px-6 py-5 sm:px-8">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#9A6B35]">
                   Category Form
@@ -425,71 +426,75 @@ export default function AdminCategoriesPage() {
               </button>
             </div>
 
-            {error && (
-              <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                {error}
-              </div>
-            )}
+            {/* Scrollable Form Body & Sticky Footer */}
+            <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
+              <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5 sm:px-8">
+                {error && (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                    {error}
+                  </div>
+                )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#380712]">
-                  Category Name *
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-[#380712]">
+                    Category Name *
+                  </label>
+                  <input
+                    required
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm({ ...form, name: e.target.value })
+                    }
+                    placeholder="e.g. Sarees, Kurtis, Ethnic Gowns"
+                    className="w-full rounded-xl border border-[#E9DFD2] px-4 py-2.5 text-sm outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-[#380712]">
+                    Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm({ ...form, description: e.target.value })
+                    }
+                    placeholder="Short note about the collection..."
+                    className="w-full rounded-xl border border-[#E9DFD2] px-4 py-2.5 text-sm outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
+                  />
+                </div>
+
+                <div>
+                  <ImageUpload
+                    value={form.image}
+                    onChange={(img) =>
+                      setForm({ ...form, image: (img as string) || "" })
+                    }
+                    label="Category Cover Image"
+                    helperText="Upload a featured banner image for this collection from your computer or link."
+                  />
+                </div>
+
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E9DFD2] bg-[#FCFAF7] p-3 text-xs font-medium text-stone-700">
+                  <input
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={(e) =>
+                      setForm({ ...form, isActive: e.target.checked })
+                    }
+                    className="h-4 w-4 rounded accent-[#380712]"
+                  />
+                  Active (Displayed on storefront category navigation)
                 </label>
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm({ ...form, name: e.target.value })
-                  }
-                  placeholder="e.g. Sarees, Kurtis, Ethnic Gowns"
-                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-2.5 text-sm outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
-                />
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#380712]">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                  placeholder="Short note about the collection..."
-                  className="w-full rounded-xl border border-[#E9DFD2] px-4 py-2.5 text-sm outline-none transition focus:border-[#9A6B35] focus:ring-2 focus:ring-[#D4AF69]/20"
-                />
-              </div>
-
-              <div>
-                <ImageUpload
-                  value={form.image}
-                  onChange={(img) =>
-                    setForm({ ...form, image: (img as string) || "" })
-                  }
-                  label="Category Cover Image"
-                  helperText="Upload a featured banner image for this collection from your computer or link."
-                />
-              </div>
-
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E9DFD2] bg-[#FCFAF7] p-3 text-xs font-medium text-stone-700">
-                <input
-                  type="checkbox"
-                  checked={form.isActive}
-                  onChange={(e) =>
-                    setForm({ ...form, isActive: e.target.checked })
-                  }
-                  className="h-4 w-4 rounded accent-[#380712]"
-                />
-                Active (Displayed on storefront category navigation)
-              </label>
-
-              <div className="flex justify-end gap-3 pt-3">
+              {/* Sticky Submit Footer */}
+              <div className="flex shrink-0 justify-end gap-3 border-t border-[#EEE7DE] bg-[#FCFAF7] px-6 py-4 sm:px-8">
                 <button
                   type="button"
                   onClick={closeForm}
-                  className="rounded-xl border border-[#E9DFD2] px-5 py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-50"
+                  className="rounded-xl border border-[#E9DFD2] bg-white px-5 py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-50"
                 >
                   Cancel
                 </button>

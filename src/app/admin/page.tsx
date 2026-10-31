@@ -134,45 +134,6 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Operations Quick Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#EDE4D9] bg-white px-6 py-4 shadow-xs">
-          <div className="flex flex-wrap items-center gap-5 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <span className="font-semibold text-stone-800">Store Status: Online</span>
-            </div>
-
-            <div className="h-4 w-px bg-stone-200 hidden sm:block" />
-
-            <div className="text-stone-600">
-              <span className="font-semibold text-[#380712]">{pendingOrders}</span> pending orders
-            </div>
-
-            <div className="h-4 w-px bg-stone-200 hidden md:block" />
-
-            <div className="text-stone-600 hidden md:block">
-              <span className="font-semibold text-[#380712]">{totalProducts}</span> active products
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/admin/orders"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#380712] px-4 py-2 text-xs font-semibold text-[#F5DFC0] transition hover:bg-[#520A1A]"
-            >
-              <ShoppingBag size={14} />
-              Process Orders ({pendingOrders})
-            </Link>
-
-            <Link
-              href="/admin/products"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-4 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-50 hover:text-stone-900"
-            >
-              Catalog ({totalProducts})
-            </Link>
-          </div>
-        </div>
-
         {/* 4 Luxury KPI Stat Cards */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {/* Card 1: Revenue */}
