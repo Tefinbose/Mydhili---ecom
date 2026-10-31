@@ -51,16 +51,28 @@ const formatPrice = (price: number) =>
 const fallbackImage =
   "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=85";
 
-export default function ShopProducts() {
+interface ShopProductsProps {
+  initialCategory?: string;
+}
+
+export default function ShopProducts({
+  initialCategory = "all",
+}: ShopProductsProps = {}) {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    if (initialCategory) {
+      setSelectedCategory(initialCategory);
+    }
+  }, [initialCategory]);
 
   const loadShopData = useCallback(async () => {
     setLoading(true);
