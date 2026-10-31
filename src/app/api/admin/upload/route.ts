@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { put } from "@vercel/blob";
 import { getAdminSession } from "@/lib/auth";
 
 const ALLOWED_MIME_TYPES = new Set([
@@ -56,8 +57,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
+    // Check if Vercel Blob is configured via BLOB_READ_WRITE_TOKEN
+    const isVercelBlobConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+
+    let uploadDir = "";
+    if (!isVercelBlobConfigured) {
+      uploadDir = path.join(process.cwd(), "public", "uploads");
+      await mkdir(uploadDir, { recursive: true });
+    }
 
     const uploadedUrls: string[] = [];
 
@@ -87,14 +94,21 @@ export async function POST(request: NextRequest) {
       const safeName = sanitizeFileName(file.name || "image.jpg");
       const fileName = `${timestamp}-${randomSuffix}-${safeName}`;
 
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const destination = path.join(uploadDir, fileName);
-
-      await writeFile(destination, buffer);
-
-      const publicUrl = `/uploads/${fileName}`;
-      uploadedUrls.push(publicUrl);
+      if (isVercelBlobConfigured) {
+        // Upload directly to Vercel Blob permanent global CDN
+        const blob = await put(`uploads/${fileName}`, file, {
+          access: "public",
+          contentType: file.type,
+        });
+        uploadedUrls.push(blob.url);
+      } else {
+        // Fallback for local development when BLOB_READ_WRITE_TOKEN is not yet set
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const destination = path.join(uploadDir, fileName);
+        await writeFile(destination, buffer);
+        uploadedUrls.push(`/uploads/${fileName}`);
+      }
     }
 
     return NextResponse.json({
@@ -105,9 +119,10 @@ export async function POST(request: NextRequest) {
           : `${uploadedUrls.length} images uploaded successfully.`,
       url: uploadedUrls[0],
       urls: uploadedUrls,
+      storage: isVercelBlobConfigured ? "vercel-blob" : "local-disk",
     });
   } catch (error) {
-    console.error("Local file upload error:", error);
+    console.error("Upload error:", error);
     return NextResponse.json(
       {
         success: false,
