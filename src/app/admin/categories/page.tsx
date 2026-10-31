@@ -119,10 +119,15 @@ export default function AdminCategoriesPage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(`Server returned HTTP ${response.status} ${response.statusText}`);
+      }
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Unable to save category.");
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || "Unable to save category.");
       }
 
       setSuccess(

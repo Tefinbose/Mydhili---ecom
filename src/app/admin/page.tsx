@@ -22,6 +22,8 @@ import Product from "@/models/Product";
 import Order from "@/models/Order";
 import Category from "@/models/Category";
 
+export const instant = false;
+
 function formatPrice(amount: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
