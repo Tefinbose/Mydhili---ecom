@@ -16,8 +16,9 @@ export default function NewsletterSection() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!email.trim()) {
@@ -26,11 +27,32 @@ export default function NewsletterSection() {
       return;
     }
 
-    // TODO: send `email` to your subscription API here.
-    setIsError(false);
-    setMessage(
-      "Thank you for your interest! Email subscriptions will be available soon."
-    );
+    try {
+      setLoading(true);
+      setIsError(false);
+      setMessage("");
+
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), source: "homepage_newsletter" }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to subscribe.");
+      }
+
+      setIsError(false);
+      setMessage(data.message || "Thank you for subscribing to Mydhili Collections!");
+      setEmail("");
+    } catch (err) {
+      setIsError(true);
+      setMessage(err instanceof Error ? err.message : "Unable to subscribe. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -128,13 +150,14 @@ export default function NewsletterSection() {
 
               <button
                 type="submit"
-                className="group relative mt-3 inline-flex h-14 w-full items-center justify-between overflow-hidden rounded-full bg-gradient-to-r from-[#E6C47A] via-[#D4AF69] to-[#B8893F] py-1.5 pl-8 pr-1.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#380712] shadow-[0_10px_30px_rgba(212,175,105,0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(212,175,105,0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF69]"
+                disabled={loading}
+                className="group relative mt-3 inline-flex h-14 w-full items-center justify-between overflow-hidden rounded-full bg-gradient-to-r from-[#E6C47A] via-[#D4AF69] to-[#B8893F] py-1.5 pl-8 pr-1.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#380712] shadow-[0_10px_30px_rgba(212,175,105,0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(212,175,105,0.4)] disabled:opacity-70 disabled:hover:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF69]"
               >
                 <span
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/4 -skew-x-12 bg-white/40 opacity-0 blur-[2px] transition-all duration-700 group-hover:left-[120%] group-hover:opacity-100"
                 />
-                <span className="relative">Subscribe</span>
+                <span className="relative">{loading ? "Subscribing..." : "Subscribe"}</span>
                 <span className="relative flex h-11 w-11 items-center justify-center rounded-full bg-[#380712] text-[#E6C47A] transition-transform duration-300 group-hover:rotate-[-45deg]">
                   <ArrowRight size={16} strokeWidth={2} />
                 </span>

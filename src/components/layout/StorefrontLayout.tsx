@@ -7,6 +7,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import InitialPreloader from "@/components/common/InitialPreloader";
 import LoadingScreen from "@/components/common/LoadingScreen";
+import RouteProgressBar from "@/components/common/RouteProgressBar";
 
 function StorefrontLayoutContent({
   children,
@@ -22,6 +23,7 @@ function StorefrontLayoutContent({
 
   return (
     <>
+      <RouteProgressBar />
       <InitialPreloader />
       <Navbar />
       <main className="animate-page-reveal">{children}</main>

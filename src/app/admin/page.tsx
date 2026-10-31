@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Tags,
   ExternalLink,
+  Mail,
 } from "lucide-react";
 
 import { requireAdmin } from "@/lib/require-admin";
@@ -364,6 +365,12 @@ export default async function AdminDashboardPage() {
                     desc: "Boutique profile, shipping & COD",
                     href: "/admin/settings",
                     icon: Settings,
+                  },
+                  {
+                    label: "Newsletter Subscribers",
+                    desc: "Audience emails & CSV export",
+                    href: "/admin/newsletter",
+                    icon: Mail,
                   },
                 ].map((action) => {
                   const Icon = action.icon;
