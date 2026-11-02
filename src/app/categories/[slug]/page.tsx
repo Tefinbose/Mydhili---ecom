@@ -6,6 +6,12 @@ import { Bricolage_Grotesque } from "next/font/google";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import ShopProducts from "@/components/shop/ShopProducts";
+import {
+  findCategoryBySlug,
+  fetchStoreCategories,
+  DEFAULT_CATEGORIES,
+  normalizeCategorySlug,
+} from "@/lib/categories";
 
 export const instant = false;
 
@@ -58,13 +64,11 @@ function fallbackDescription(slug: string) {
 }
 
 async function getCategoryInfo(slug: string) {
-  const normalizedSlug = slug.toLowerCase();
-  const defaultBg = categoryBackgrounds[normalizedSlug] || fallbackBackground;
+  const normalizedSlug = normalizeCategorySlug(slug);
+  const defaultBg = categoryBackgrounds[normalizedSlug] || categoryBackgrounds[slug.toLowerCase()] || fallbackBackground;
 
   try {
-    const category = await prisma.category.findFirst({
-      where: { slug: normalizedSlug, isActive: true },
-    });
+    const category = await findCategoryBySlug(slug);
 
     if (category) {
       const img = category.image?.trim() ?? "";
@@ -89,15 +93,11 @@ async function getCategoryInfo(slug: string) {
 
 async function getAllCategories(): Promise<CategoryLink[]> {
   try {
-    const list = await prisma.category.findMany({
-      where: { isActive: true },
-      select: { name: true, slug: true },
-      orderBy: { name: "asc" },
-    });
-    return list;
+    const list = await fetchStoreCategories();
+    return list.map((c) => ({ name: c.name, slug: c.slug }));
   } catch (error) {
     console.error("Failed to fetch categories:", error);
-    return [];
+    return DEFAULT_CATEGORIES.map((c) => ({ name: c.name, slug: c.slug }));
   }
 }
 

@@ -16,6 +16,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import {
+  DEFAULT_CATEGORIES,
+  normalizeCategorySlug,
+} from "@/lib/constants/categories";
+
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-category",
@@ -40,7 +45,17 @@ const categoryStyles: Record<string, CategoryStyle> = {
     icon: Shirt,
     image: "/categories/kurtis.avif",
   },
+  kurti: {
+    subtitle: "Everyday elegance",
+    icon: Shirt,
+    image: "/categories/kurtis.avif",
+  },
   sarees: {
+    subtitle: "Timeless traditions",
+    icon: Flower2,
+    image: "/categories/saree.jpg",
+  },
+  saree: {
     subtitle: "Timeless traditions",
     icon: Flower2,
     image: "/categories/saree.jpg",
@@ -50,7 +65,17 @@ const categoryStyles: Record<string, CategoryStyle> = {
     icon: Crown,
     image: "/categories/ethnicwear.jpg",
   },
+  ethnicwear: {
+    subtitle: "Celebrate in style",
+    icon: Crown,
+    image: "/categories/ethnicwear.jpg",
+  },
   dresses: {
+    subtitle: "Modern silhouettes",
+    icon: ShoppingBag,
+    image: "/categories/dresses.jpg",
+  },
+  dress: {
     subtitle: "Modern silhouettes",
     icon: ShoppingBag,
     image: "/categories/dresses.jpg",
@@ -60,7 +85,17 @@ const categoryStyles: Record<string, CategoryStyle> = {
     icon: Gem,
     image: "/categories/blouse.webp",
   },
+  blouse: {
+    subtitle: "Beautiful finishing touches",
+    icon: Gem,
+    image: "/categories/blouse.webp",
+  },
   accessories: {
+    subtitle: "The perfect details",
+    icon: Gift,
+    image: "/categories/accessories.jpg",
+  },
+  accessory: {
     subtitle: "The perfect details",
     icon: Gift,
     image: "/categories/accessories.jpg",
@@ -70,7 +105,22 @@ const categoryStyles: Record<string, CategoryStyle> = {
     icon: Crown,
     image: "/categories/lehenga.jpg",
   },
+  lehenga: {
+    subtitle: "Royal celebrations",
+    icon: Crown,
+    image: "/categories/lehenga.jpg",
+  },
   "salwar-suits": {
+    subtitle: "Graceful silhouettes",
+    icon: Shirt,
+    image: "/categories/salvarsuits.jpg",
+  },
+  salwarsuits: {
+    subtitle: "Graceful silhouettes",
+    icon: Shirt,
+    image: "/categories/salvarsuits.jpg",
+  },
+  "salwar-suit": {
     subtitle: "Graceful silhouettes",
     icon: Shirt,
     image: "/categories/salvarsuits.jpg",
@@ -88,8 +138,8 @@ const cardBasis =
   "shrink-0 snap-start basis-[72%] sm:basis-[calc((100%-1rem)/2)] md:basis-[calc((100%-2rem)/3)] lg:basis-[calc((100%-3rem)/4)]";
 
 export default function CategorySection() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
+  const [loading, setLoading] = useState(false);
   const [brokenImages, setBrokenImages] = useState<string[]>([]);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
@@ -104,7 +154,7 @@ export default function CategorySection() {
         if (!response.ok) throw new Error("Unable to fetch categories");
 
         const data = await response.json();
-        if (!cancelled && data.success && Array.isArray(data.categories)) {
+        if (!cancelled && data.success && Array.isArray(data.categories) && data.categories.length > 0) {
           setCategories(data.categories);
         }
       } catch (error) {
@@ -237,10 +287,25 @@ export default function CategorySection() {
           >
             {categories.map((category, index) => {
               const categoryId = category.id || category._id || category.slug;
-              const style = categoryStyles[category.slug] ?? fallbackStyle;
+              const normalized = normalizeCategorySlug(category.slug);
+              const style =
+                categoryStyles[normalized] ??
+                categoryStyles[category.slug] ??
+                fallbackStyle;
               const Icon = style.icon;
-              const src = category.image || style.image;
               const imageBroken = brokenImages.includes(categoryId);
+              const customImage = category.image?.trim();
+              const hasValidCustomImage =
+                !!customImage &&
+                !customImage.startsWith("/uploads/") &&
+                (customImage.startsWith("http://") ||
+                  customImage.startsWith("https://") ||
+                  customImage.startsWith("/"));
+              const src = imageBroken
+                ? style.image
+                : hasValidCustomImage
+                ? customImage
+                : style.image;
 
               return (
                 <Link
@@ -249,18 +314,18 @@ export default function CategorySection() {
                   className={`${cardBasis} group block`}
                 >
                   <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-gradient-to-br from-[#380712] to-[#6D2636] shadow-[0_10px_30px_rgba(56,7,18,0.08)] transition-all duration-500 group-hover:-translate-y-1.5 group-hover:shadow-[0_22px_50px_rgba(56,7,18,0.22)]">
-                    {!imageBroken && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={src}
-                        alt={category.name}
-                        loading="lazy"
-                        onError={() =>
-                          setBrokenImages((prev) => [...prev, categoryId])
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={src}
+                      alt={category.name}
+                      loading="lazy"
+                      onError={() => {
+                        if (!imageBroken) {
+                          setBrokenImages((prev) => [...prev, categoryId]);
                         }
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-110"
-                      />
-                    )}
+                      }}
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-110"
+                    />
 
                     {/* Overlays */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#24040B]/90 via-[#380712]/15 to-[#24040B]/25 transition-opacity duration-500" />

@@ -1,30 +1,29 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { fetchStoreCategories, DEFAULT_CATEGORIES } from "@/lib/categories";
 
 export async function GET() {
   try {
-    const rawCategories = await prisma.category.findMany({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
-    });
+    const categories = await fetchStoreCategories();
 
-    const categories = rawCategories.map((c) => ({
-      ...c,
-      _id: c.id,
-      id: c.id,
-    }));
+    return NextResponse.json(
+      {
+        success: true,
+        count: categories.length,
+        categories,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Failed to fetch categories:", error);
 
     return NextResponse.json({
       success: true,
-      count: categories.length,
-      categories,
+      count: DEFAULT_CATEGORIES.length,
+      categories: DEFAULT_CATEGORIES,
     });
-  } catch (error) {
-    console.error("failed to fetch categories:", error);
-
-    return NextResponse.json(
-      { success: false, message: "Failed to fetch categories" },
-      { status: 500 }
-    );
   }
 }

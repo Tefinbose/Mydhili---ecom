@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { DEFAULT_CATEGORIES } from "@/lib/constants/categories";
 
 type Category = {
   id?: string;
@@ -40,7 +41,7 @@ export default function Navbar() {
   const { itemCount, isLoaded } = useCart();
   const { itemCount: wishlistCount, isLoaded: isWishlistLoaded } = useWishlist();
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -55,7 +56,7 @@ export default function Navbar() {
 
         const data = await response.json();
 
-        if (!cancelled && data.success && Array.isArray(data.categories)) {
+        if (!cancelled && data.success && Array.isArray(data.categories) && data.categories.length > 0) {
           setCategories(data.categories);
         }
       } catch (error) {

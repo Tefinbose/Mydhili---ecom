@@ -12,6 +12,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
+import {
+  DEFAULT_CATEGORIES,
+  normalizeCategorySlug,
+} from "@/lib/constants/categories";
 
 type Category = {
   _id?: string;
@@ -61,7 +65,7 @@ export default function ShopProducts({
 }: ShopProductsProps = {}) {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("newest");
@@ -80,34 +84,41 @@ export default function ShopProducts({
     setError("");
 
     try {
-      const [productsResponse, categoriesResponse] = await Promise.all([
-        fetch("/api/products"),
-        fetch("/api/categories"),
+      const [productsResult, categoriesResult] = await Promise.allSettled([
+        fetch("/api/products").then(async (res) => {
+          if (!res.ok) throw new Error("Failed to load products");
+          return res.json();
+        }),
+        fetch("/api/categories").then(async (res) => {
+          if (!res.ok) throw new Error("Failed to load categories");
+          return res.json();
+        }),
       ]);
 
-      if (!productsResponse.ok || !categoriesResponse.ok) {
-        throw new Error("We couldn't load the shop right now.");
-      }
-
-      const productsData = await productsResponse.json();
-      const categoriesData = await categoriesResponse.json();
-
-      if (!productsData.success || !categoriesData.success) {
-        throw new Error(
-          productsData.message ||
-            categoriesData.message ||
-            "Unable to load shop data."
+      if (productsResult.status === "fulfilled" && productsResult.value?.success) {
+        setProducts(
+          Array.isArray(productsResult.value.products)
+            ? productsResult.value.products
+            : []
         );
+      } else {
+        const errorMsg =
+          productsResult.status === "rejected"
+            ? productsResult.reason?.message
+            : productsResult.value?.message;
+        throw new Error(errorMsg || "Unable to load products.");
       }
 
-      setProducts(
-        Array.isArray(productsData.products) ? productsData.products : []
-      );
-      setCategories(
-        Array.isArray(categoriesData.categories)
-          ? categoriesData.categories
-          : []
-      );
+      if (
+        categoriesResult.status === "fulfilled" &&
+        categoriesResult.value?.success &&
+        Array.isArray(categoriesResult.value.categories) &&
+        categoriesResult.value.categories.length > 0
+      ) {
+        setCategories(categoriesResult.value.categories);
+      } else {
+        setCategories(DEFAULT_CATEGORIES);
+      }
     } catch (err) {
       console.error("Shop loading failed:", err);
       setError(
@@ -126,15 +137,22 @@ export default function ShopProducts({
 
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const normalizedSelected = normalizeCategorySlug(selectedCategory);
 
     const result = products.filter((product) => {
-      const category =
+      const productCatRaw =
         typeof product.category === "object" && product.category
           ? product.category.slug
+          : typeof product.category === "string"
+          ? product.category
           : "";
 
+      const normalizedProductCat = normalizeCategorySlug(productCatRaw);
+
       const categoryMatches =
-        selectedCategory === "all" || category === selectedCategory;
+        selectedCategory === "all" ||
+        normalizedProductCat === normalizedSelected ||
+        productCatRaw.toLowerCase() === selectedCategory.toLowerCase();
 
       const searchMatches =
         !query ||
@@ -143,7 +161,7 @@ export default function ShopProducts({
         (product.shortDescription || "").toLowerCase().includes(query) ||
         (typeof product.category === "object" && product.category
           ? product.category.name.toLowerCase().includes(query)
-          : "");
+          : false);
 
       return categoryMatches && searchMatches;
     });
@@ -195,23 +213,30 @@ export default function ShopProducts({
         All Products
       </button>
 
-      {categories.map((category) => (
-        <button
-          key={category.slug}
-          type="button"
-          onClick={() => {
-            setSelectedCategory(category.slug);
-            setMobileFiltersOpen(false);
-          }}
-          className={`w-full rounded-sm px-3 py-2.5 text-left text-sm transition ${
-            selectedCategory === category.slug
-              ? "bg-[#380712] text-white"
-              : "text-stone-600 hover:bg-[#F0E7DC] hover:text-[#380712]"
-          }`}
-        >
-          {category.name}
-        </button>
-      ))}
+      {categories.map((category) => {
+        const isSelected =
+          selectedCategory === category.slug ||
+          normalizeCategorySlug(selectedCategory) ===
+            normalizeCategorySlug(category.slug);
+
+        return (
+          <button
+            key={category.slug}
+            type="button"
+            onClick={() => {
+              setSelectedCategory(category.slug);
+              setMobileFiltersOpen(false);
+            }}
+            className={`w-full rounded-sm px-3 py-2.5 text-left text-sm transition ${
+              isSelected
+                ? "bg-[#380712] text-white"
+                : "text-stone-600 hover:bg-[#F0E7DC] hover:text-[#380712]"
+            }`}
+          >
+            {category.name}
+          </button>
+        );
+      })}
     </div>
   );
 
