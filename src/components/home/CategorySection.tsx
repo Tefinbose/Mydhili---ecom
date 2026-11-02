@@ -23,7 +23,8 @@ const bricolage = Bricolage_Grotesque({
 });
 
 type Category = {
-  _id: string;
+  id?: string;
+  _id?: string;
   name: string;
   slug: string;
   description?: string;
@@ -235,14 +236,15 @@ export default function CategorySection() {
             className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {categories.map((category, index) => {
+              const categoryId = category.id || category._id || category.slug;
               const style = categoryStyles[category.slug] ?? fallbackStyle;
               const Icon = style.icon;
               const src = category.image || style.image;
-              const imageBroken = brokenImages.includes(category._id);
+              const imageBroken = brokenImages.includes(categoryId);
 
               return (
                 <Link
-                  key={category._id}
+                  key={categoryId}
                   href={`/categories/${category.slug}`}
                   className={`${cardBasis} group block`}
                 >
@@ -254,7 +256,7 @@ export default function CategorySection() {
                         alt={category.name}
                         loading="lazy"
                         onError={() =>
-                          setBrokenImages((prev) => [...prev, category._id])
+                          setBrokenImages((prev) => [...prev, categoryId])
                         }
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-110"
                       />

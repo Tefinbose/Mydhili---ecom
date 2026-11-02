@@ -3,10 +3,16 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const categories = await prisma.category.findMany({
+    const rawCategories = await prisma.category.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
     });
+
+    const categories = rawCategories.map((c) => ({
+      ...c,
+      _id: c.id,
+      id: c.id,
+    }));
 
     return NextResponse.json({
       success: true,

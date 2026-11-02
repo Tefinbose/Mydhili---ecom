@@ -18,7 +18,8 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
 type Category = {
-  _id: string;
+  id?: string;
+  _id?: string;
   name: string;
   slug: string;
 };
@@ -239,7 +240,7 @@ export default function Navbar() {
                     <div className="max-h-[50vh] overflow-y-auto py-1">
                       {categories.map((category) => (
                         <Link
-                          key={category._id}
+                          key={category.id || category._id || category.slug}
                           href={`/categories/${category.slug}`}
                           onClick={closeMenus}
                           className="group/item flex items-center justify-between px-4 py-2.5 text-sm text-stone-700 transition hover:bg-[#FAF7F2] hover:text-[#9A6B35]"
@@ -419,7 +420,7 @@ export default function Navbar() {
                 <div className="grid grid-cols-2 gap-x-5">
                   {categories.map((category) => (
                     <Link
-                      key={category._id}
+                      key={category.id || category._id || category.slug}
                       href={`/categories/${category.slug}`}
                       onClick={closeMenus}
                       tabIndex={menuOpen ? 0 : -1}
