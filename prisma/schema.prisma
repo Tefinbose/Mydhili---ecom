@@ -1,0 +1,87 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Category {
+  id          String    @id @default(cuid()) @db.VarChar(64)
+  name        String    @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  description String?   @db.Text
+  image       String?   @db.VarChar(1000)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id               String    @id @default(cuid()) @db.VarChar(64)
+  name             String    @db.VarChar(255)
+  slug             String    @unique @db.VarChar(255)
+  description      String?   @db.Text
+  shortDescription String?   @db.Text
+  price            Decimal   @db.Decimal(10, 2)
+  compareAtPrice   Decimal?  @db.Decimal(10, 2)
+  images           Json?
+  variants         Json?
+  isFeatured       Boolean   @default(false)
+  isActive         Boolean   @default(true)
+  categoryId       String?   @db.VarChar(64)
+  category         Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model Order {
+  id             String   @id @default(cuid()) @db.VarChar(64)
+  orderNumber    String   @unique @db.VarChar(64)
+  customer       Json
+  items          Json
+  subtotal       Decimal  @db.Decimal(10, 2)
+  shippingFee    Decimal  @default(0.00) @db.Decimal(10, 2)
+  total          Decimal  @db.Decimal(10, 2)
+  paymentMethod  String   @default("cod") @db.VarChar(50)
+  paymentStatus  String   @default("pending") @db.VarChar(50)
+  orderStatus    String   @default("pending") @db.VarChar(50)
+  trackingNumber String?  @db.VarChar(255)
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("orders")
+}
+
+model StoreSettings {
+  id                    String   @id @default("default") @db.VarChar(64)
+  storeName             String   @default("Mydhili Collections") @db.VarChar(255)
+  supportEmail          String?  @db.VarChar(255)
+  supportPhone          String?  @db.VarChar(50)
+  currency              String   @default("INR") @db.VarChar(10)
+  shippingFee           Decimal  @default(0.00) @db.Decimal(10, 2)
+  freeShippingThreshold Decimal  @default(0.00) @db.Decimal(10, 2)
+  codEnabled            Boolean  @default(true)
+  updatedAt             DateTime @updatedAt
+
+  @@map("store_settings")
+}
+
+model Newsletter {
+  id        String   @id @default(cuid()) @db.VarChar(64)
+  email     String   @unique @db.VarChar(255)
+  status    String   @default("active") @db.VarChar(50)
+  source    String   @default("website_footer") @db.VarChar(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("newsletter")
+}

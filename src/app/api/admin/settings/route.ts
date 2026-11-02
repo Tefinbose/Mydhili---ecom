@@ -1,48 +1,6 @@
-
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth";
-import StoreSettings from "@/models/StoreSettings";
-
-const defaultSettings = {
-  storeName: "Mydhili Boutique",
-  tagline: "",
-  email: "",
-  phone: "",
-  whatsapp: "",
-  address: "",
-  city: "",
-  state: "",
-  pincode: "",
-  logoUrl: "",
-  shippingCharge: 0,
-  freeShippingThreshold: 0,
-  codEnabled: true,
-  onlinePaymentEnabled: true,
-};
-
-const allowedStringFields = [
-  "storeName",
-  "tagline",
-  "email",
-  "phone",
-  "whatsapp",
-  "address",
-  "city",
-  "state",
-  "pincode",
-  "logoUrl",
-] as const;
-
-const allowedNumberFields = [
-  "shippingCharge",
-  "freeShippingThreshold",
-] as const;
-
-const allowedBooleanFields = [
-  "codEnabled",
-  "onlinePaymentEnabled",
-] as const;
 
 export async function GET() {
   const session = await getAdminSession();
@@ -55,18 +13,35 @@ export async function GET() {
   }
 
   try {
-
-    await connectToDatabase();
-
-    let settings = await StoreSettings.findOne();
+    let settings = await prisma.storeSettings.findFirst();
 
     if (!settings) {
-      settings = await StoreSettings.create(defaultSettings);
+      settings = await prisma.storeSettings.create({
+        data: {
+          id: "default",
+          storeName: "Mydhili Collections",
+          supportEmail: "contact@mydhiliboutique.com",
+          supportPhone: "+91 98765 43210",
+          currency: "INR",
+          shippingFee: 0,
+          freeShippingThreshold: 999,
+          codEnabled: true,
+        },
+      });
     }
 
     return NextResponse.json({
       success: true,
-      settings: settings.toObject(),
+      settings: {
+        storeName: settings.storeName,
+        email: settings.supportEmail || "",
+        phone: settings.supportPhone || "",
+        shippingCharge: Number(settings.shippingFee),
+        shippingFee: Number(settings.shippingFee),
+        freeShippingThreshold: Number(settings.freeShippingThreshold),
+        codEnabled: settings.codEnabled,
+        currency: settings.currency,
+      },
     });
   } catch (error) {
     console.error("GET store settings error:", error);
@@ -91,93 +66,94 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
-    const updateData: Record<string, string | number | boolean> = {};
+    const data: {
+      storeName?: string;
+      supportEmail?: string;
+      supportPhone?: string;
+      shippingFee?: number;
+      freeShippingThreshold?: number;
+      codEnabled?: boolean;
+    } = {};
 
-    for (const field of allowedStringFields) {
-      if (body[field] !== undefined) {
-        if (typeof body[field] !== "string") {
-          return NextResponse.json(
-            { success: false, message: `${field} must be text.` },
-            { status: 400 }
-          );
-        }
-
-        updateData[field] = body[field].trim();
+    if (body.storeName !== undefined) {
+      const name = String(body.storeName).trim();
+      if (!name) {
+        return NextResponse.json(
+          { success: false, message: "Store name is required." },
+          { status: 400 }
+        );
       }
+      data.storeName = name;
     }
 
-    for (const field of allowedNumberFields) {
-      if (body[field] !== undefined) {
-        const value = Number(body[field]);
-
-        if (!Number.isFinite(value) || value < 0) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: `${field} must be a valid non-negative number.`,
-            },
-            { status: 400 }
-          );
-        }
-
-        updateData[field] = value;
+    if (body.email !== undefined) {
+      const email = String(body.email).trim();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return NextResponse.json(
+          { success: false, message: "Please enter a valid email address." },
+          { status: 400 }
+        );
       }
+      data.supportEmail = email;
     }
 
-    for (const field of allowedBooleanFields) {
-      if (body[field] !== undefined) {
-        if (typeof body[field] !== "boolean") {
-          return NextResponse.json(
-            { success: false, message: `${field} must be true or false.` },
-            { status: 400 }
-          );
-        }
+    if (body.phone !== undefined) {
+      data.supportPhone = String(body.phone).trim();
+    }
 
-        updateData[field] = body[field];
+    if (body.shippingCharge !== undefined || body.shippingFee !== undefined) {
+      const val = Number(body.shippingCharge ?? body.shippingFee);
+      if (!Number.isFinite(val) || val < 0) {
+        return NextResponse.json(
+          { success: false, message: "Shipping fee must be a valid non-negative number." },
+          { status: 400 }
+        );
       }
+      data.shippingFee = val;
     }
 
-    if (
-      body.email !== undefined &&
-      body.email.trim() &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())
-    ) {
-      return NextResponse.json(
-        { success: false, message: "Please enter a valid email address." },
-        { status: 400 }
-      );
+    if (body.freeShippingThreshold !== undefined) {
+      const val = Number(body.freeShippingThreshold);
+      if (!Number.isFinite(val) || val < 0) {
+        return NextResponse.json(
+          { success: false, message: "Free shipping threshold must be a valid non-negative number." },
+          { status: 400 }
+        );
+      }
+      data.freeShippingThreshold = val;
     }
 
-    if (
-      updateData.storeName !== undefined &&
-      !String(updateData.storeName).trim()
-    ) {
-      return NextResponse.json(
-        { success: false, message: "Store name is required." },
-        { status: 400 }
-      );
+    if (body.codEnabled !== undefined) {
+      data.codEnabled = Boolean(body.codEnabled);
     }
 
-    await connectToDatabase();
-
-    const settings = await StoreSettings.findOneAndUpdate(
-      {},
-      {
-        $set: updateData,
-        $setOnInsert: defaultSettings,
+    const updated = await prisma.storeSettings.upsert({
+      where: { id: "default" },
+      update: data,
+      create: {
+        id: "default",
+        storeName: data.storeName || "Mydhili Collections",
+        supportEmail: data.supportEmail,
+        supportPhone: data.supportPhone,
+        shippingFee: data.shippingFee || 0,
+        freeShippingThreshold: data.freeShippingThreshold || 0,
+        codEnabled: data.codEnabled ?? true,
       },
-      {
-        new: true,
-        upsert: true,
-        runValidators: true,
-        setDefaultsOnInsert: true,
-      }
-    );
+    });
 
     return NextResponse.json({
       success: true,
       message: "Store settings updated successfully.",
-      settings,
+      settings: {
+        storeName: updated.storeName,
+        email: updated.supportEmail || "",
+        phone: updated.supportPhone || "",
+        shippingCharge: Number(updated.shippingFee),
+        shippingFee: Number(updated.shippingFee),
+        freeShippingThreshold: Number(updated.freeShippingThreshold),
+        codEnabled: updated.codEnabled,
+        currency: updated.currency,
+      },
     });
   } catch (error) {
     console.error("UPDATE store settings error:", error);

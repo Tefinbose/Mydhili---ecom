@@ -1,22 +1,35 @@
 import { NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    await connectToDatabase();
+    await prisma.$queryRawUnsafe("SELECT 1;");
+    const [categoriesCount, productsCount, ordersCount] = await Promise.all([
+      prisma.category.count(),
+      prisma.product.count(),
+      prisma.order.count(),
+    ]);
+
     return NextResponse.json({
       success: true,
-      message: "MongoDB connected successfully",
+      database: "MySQL",
+      message: "MySQL database connected successfully via Prisma",
+      counts: {
+        categories: categoriesCount,
+        products: productsCount,
+        orders: ordersCount,
+      },
     });
   } catch (error) {
-    console.error(`MongoDB connection failed ${error}`);
+    console.error(`MySQL connection failed:`, error);
 
     return NextResponse.json(
       {
         success: false,
-        message: "Could not connect to MongoDB",
+        message: "Could not connect to MySQL database",
+        error: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

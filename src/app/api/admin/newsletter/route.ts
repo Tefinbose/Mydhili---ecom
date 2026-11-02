@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth";
-import Newsletter from "@/models/Newsletter";
 
 export async function GET(request: NextRequest) {
   const session = await getAdminSession();
@@ -13,41 +12,47 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    await connectToDatabase();
-
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.trim().toLowerCase() || "";
     const status = searchParams.get("status")?.trim().toLowerCase() || "all";
 
-    const filter: Record<string, unknown> = {};
+    const where: {
+      email?: { contains: string };
+      status?: string;
+    } = {};
 
     if (search) {
-      filter.email = { $regex: search, $options: "i" };
+      where.email = { contains: search };
     }
 
     if (status === "active" || status === "unsubscribed") {
-      filter.status = status;
+      where.status = status;
     }
 
     const [subscribers, totalCount, activeCount, unsubscribedCount] = await Promise.all([
-      Newsletter.find(filter).sort({ createdAt: -1 }).lean(),
-      Newsletter.countDocuments({}),
-      Newsletter.countDocuments({ status: "active" }),
-      Newsletter.countDocuments({ status: "unsubscribed" }),
+      prisma.newsletter.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.newsletter.count(),
+      prisma.newsletter.count({ where: { status: "active" } }),
+      prisma.newsletter.count({ where: { status: "unsubscribed" } }),
     ]);
 
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const thisMonthCount = await Newsletter.countDocuments({
-      createdAt: { $gte: startOfMonth },
+    const thisMonthCount = await prisma.newsletter.count({
+      where: {
+        createdAt: { gte: startOfMonth },
+      },
     });
 
     return NextResponse.json({
       success: true,
-      subscribers: subscribers.map((sub: any) => ({
-        id: String(sub._id),
+      subscribers: subscribers.map((sub) => ({
+        id: sub.id,
         email: sub.email,
         status: sub.status,
         source: sub.source,
@@ -89,9 +94,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await connectToDatabase();
-
-    const deleted = await Newsletter.findByIdAndDelete(id);
+    const deleted = await prisma.newsletter.delete({
+      where: { id },
+    });
 
     if (!deleted) {
       return NextResponse.json(
@@ -133,13 +138,10 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    await connectToDatabase();
-
-    const updated = await Newsletter.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
-    );
+    const updated = await prisma.newsletter.update({
+      where: { id },
+      data: { status },
+    });
 
     if (!updated) {
       return NextResponse.json(

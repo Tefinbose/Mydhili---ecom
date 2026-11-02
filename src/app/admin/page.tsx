@@ -18,10 +18,7 @@ import {
 } from "lucide-react";
 
 import { requireAdmin } from "@/lib/require-admin";
-import { connectToDatabase } from "@/lib/mongodb";
-import Product from "@/models/Product";
-import Order from "@/models/Order";
-import Category from "@/models/Category";
+import { prisma } from "@/lib/prisma";
 
 export const instant = false;
 
@@ -69,8 +66,6 @@ export default async function AdminDashboardPage() {
   await connection();
   const session = await requireAdmin();
 
-  await connectToDatabase();
-
   // Load real-time dashboard data concurrently
   const [
     totalProducts,
@@ -78,24 +73,51 @@ export default async function AdminDashboardPage() {
     totalCategories,
     totalOrders,
     pendingOrders,
-    revenueData,
-    recentOrders,
-    recentProducts,
+    paidOrders,
+    recentOrdersRaw,
+    recentProductsRaw,
   ] = await Promise.all([
-    Product.countDocuments(),
-    Product.countDocuments({ isActive: true }),
-    Category.countDocuments(),
-    Order.countDocuments(),
-    Order.countDocuments({ orderStatus: "pending" }),
-    Order.aggregate([
-      { $match: { paymentStatus: "paid" } },
-      { $group: { _id: null, total: { $sum: "$total" } } },
-    ]),
-    Order.find().sort({ createdAt: -1 }).limit(6).lean(),
-    Product.find().sort({ createdAt: -1 }).limit(4).populate("category", "name").lean(),
+    prisma.product.count(),
+    prisma.product.count({ where: { isActive: true } }),
+    prisma.category.count(),
+    prisma.order.count(),
+    prisma.order.count({ where: { orderStatus: "pending" } }),
+    prisma.order.findMany({ where: { paymentStatus: "paid" }, select: { total: true } }),
+    prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 6 }),
+    prisma.product.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 4,
+      include: { category: { select: { name: true } } },
+    }),
   ]);
 
-  const totalRevenue = revenueData?.[0]?.total || 0;
+  const totalRevenue = paidOrders.reduce((sum, o) => sum + Number(o.total), 0);
+
+  const recentOrders = recentOrdersRaw.map((o) => {
+    const cust = (o.customer as any) || {};
+    return {
+      _id: o.id,
+      id: o.id,
+      orderNumber: o.orderNumber,
+      customer: cust,
+      total: Number(o.total),
+      orderStatus: o.orderStatus,
+      paymentMethod: o.paymentMethod,
+      items: o.items,
+      createdAt: o.createdAt,
+    };
+  });
+
+  const recentProducts = recentProductsRaw.map((p) => ({
+    _id: p.id,
+    id: p.id,
+    name: p.name,
+    price: Number(p.price),
+    images: Array.isArray(p.images) ? (p.images as string[]) : [],
+    isActive: p.isActive,
+    category: p.category,
+    createdAt: p.createdAt,
+  }));
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-6 lg:px-10">

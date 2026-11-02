@@ -1,11 +1,6 @@
-
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
-
-import { connectToDatabase } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth";
-import Product from "@/models/Product";
-import Category from "@/models/Category";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -88,18 +83,21 @@ export async function GET(
 
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id) {
       return NextResponse.json(
         { success: false, message: "Invalid product ID." },
         { status: 400 }
       );
     }
 
-    await connectToDatabase();
-
-    const product = await Product.findById(id)
-      .populate("category", "name")
-      .lean();
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        category: {
+          select: { id: true, name: true },
+        },
+      },
+    });
 
     if (!product) {
       return NextResponse.json(
@@ -108,7 +106,26 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, product });
+    return NextResponse.json({
+      success: true,
+      product: {
+        _id: product.id,
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        description: product.description,
+        shortDescription: product.shortDescription,
+        price: Number(product.price),
+        compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+        images: product.images,
+        variants: product.variants,
+        isFeatured: product.isFeatured,
+        isActive: product.isActive,
+        category: product.category ? { _id: product.category.id, id: product.category.id, name: product.category.name } : null,
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
+      },
+    });
   } catch (error) {
     console.error("Get product error:", error);
 
@@ -134,7 +151,7 @@ export async function PUT(
 
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id) {
       return NextResponse.json(
         { success: false, message: "Invalid product ID." },
         { status: 400 }
@@ -150,7 +167,7 @@ export async function PUT(
     const price = Number(body.price);
     const compareAtPrice =
       body.compareAtPrice === "" || body.compareAtPrice == null
-        ? undefined
+        ? null
         : Number(body.compareAtPrice);
 
     if (!name || !description || !categoryId) {
@@ -171,7 +188,7 @@ export async function PUT(
     }
 
     if (
-      compareAtPrice !== undefined &&
+      compareAtPrice !== null &&
       (!Number.isFinite(compareAtPrice) || compareAtPrice < price)
     ) {
       return NextResponse.json(
@@ -180,13 +197,6 @@ export async function PUT(
           message:
             "Compare-at price must be greater than or equal to the selling price.",
         },
-        { status: 400 }
-      );
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
-      return NextResponse.json(
-        { success: false, message: "Invalid category." },
         { status: 400 }
       );
     }
@@ -206,9 +216,9 @@ export async function PUT(
           .filter(Boolean)
       : [];
 
-    await connectToDatabase();
-
-    const existingProduct = await Product.findById(id);
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+    });
 
     if (!existingProduct) {
       return NextResponse.json(
@@ -217,7 +227,9 @@ export async function PUT(
       );
     }
 
-    const category = await Category.findById(categoryId);
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId },
+    });
 
     if (!category) {
       return NextResponse.json(
@@ -233,34 +245,54 @@ export async function PUT(
       slug = baseSlug;
       let suffix = 1;
 
-      while (await Product.findOne({ slug, _id: { $ne: id } })) {
+      while (await prisma.product.findFirst({ where: { slug, NOT: { id } } })) {
         slug = `${baseSlug}-${suffix}`;
         suffix++;
       }
     }
 
-    existingProduct.name = name;
-    existingProduct.slug = slug;
-    existingProduct.description = description;
-    existingProduct.shortDescription = shortDescription;
-    existingProduct.category = new mongoose.Types.ObjectId(categoryId);
-    existingProduct.price = price;
-    existingProduct.compareAtPrice = compareAtPrice;
-    existingProduct.images = images;
-    existingProduct.variants = variantResult.variants;
-    existingProduct.isFeatured = Boolean(body.isFeatured);
-    existingProduct.isActive = Boolean(body.isActive);
-
-    await existingProduct.save();
-
-    const updatedProduct = await Product.findById(id)
-      .populate("category", "name")
-      .lean();
+    const updated = await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        slug,
+        description,
+        shortDescription,
+        categoryId,
+        price,
+        compareAtPrice,
+        images,
+        variants: variantResult.variants,
+        isFeatured: Boolean(body.isFeatured),
+        isActive: Boolean(body.isActive),
+      },
+      include: {
+        category: {
+          select: { id: true, name: true },
+        },
+      },
+    });
 
     return NextResponse.json({
       success: true,
       message: "Product updated successfully.",
-      product: updatedProduct,
+      product: {
+        _id: updated.id,
+        id: updated.id,
+        name: updated.name,
+        slug: updated.slug,
+        description: updated.description,
+        shortDescription: updated.shortDescription,
+        price: Number(updated.price),
+        compareAtPrice: updated.compareAtPrice ? Number(updated.compareAtPrice) : null,
+        images: updated.images,
+        variants: updated.variants,
+        isFeatured: updated.isFeatured,
+        isActive: updated.isActive,
+        category: updated.category ? { _id: updated.category.id, id: updated.category.id, name: updated.category.name } : null,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      },
     });
   } catch (error) {
     console.error("Update product error:", error);
@@ -287,16 +319,16 @@ export async function DELETE(
 
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!id) {
       return NextResponse.json(
         { success: false, message: "Invalid product ID." },
         { status: 400 }
       );
     }
 
-    await connectToDatabase();
-
-    const product = await Product.findByIdAndDelete(id);
+    const product = await prisma.product.delete({
+      where: { id },
+    });
 
     if (!product) {
       return NextResponse.json(

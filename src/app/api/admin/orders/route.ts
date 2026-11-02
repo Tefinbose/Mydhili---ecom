@@ -1,8 +1,6 @@
-
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth";
-import Order from "@/models/Order";
 
 const orderStatuses = [
   "pending",
@@ -26,12 +24,36 @@ export async function GET() {
   }
 
   try {
+    const rawOrders = await prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+    });
 
-    await connectToDatabase();
-
-    const orders = await Order.find()
-      .sort({ createdAt: -1 })
-      .lean();
+    const orders = rawOrders.map((order: any) => {
+      const cust = (order.customer as any) || {};
+      return {
+        _id: order.id,
+        id: order.id,
+        orderNumber: order.orderNumber,
+        customer: {
+          name: cust.name || "",
+          email: cust.email || "",
+          phone: cust.phone || "",
+        },
+        shippingAddress: cust.shippingAddress || null,
+        items: order.items,
+        subtotal: Number(order.subtotal),
+        shippingFee: Number(order.shippingFee),
+        shippingCharge: Number(order.shippingFee),
+        total: Number(order.total),
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+        orderStatus: order.orderStatus,
+        trackingNumber: order.trackingNumber,
+        notes: order.notes,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -58,19 +80,17 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    await connectToDatabase();
-
     const body = await request.json();
     const orderId = String(body.orderId || "").trim();
 
-    if (!orderId || !/^[a-f\d]{24}$/i.test(orderId)) {
+    if (!orderId) {
       return NextResponse.json(
         { success: false, message: "A valid order ID is required." },
         { status: 400 }
       );
     }
 
-    const updates: Record<string, string> = {};
+    const data: { orderStatus?: string; paymentStatus?: string } = {};
 
     if (body.orderStatus !== undefined) {
       if (
@@ -84,7 +104,7 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      updates.orderStatus = body.orderStatus;
+      data.orderStatus = body.orderStatus;
     }
 
     if (body.paymentStatus !== undefined) {
@@ -99,33 +119,39 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      updates.paymentStatus = body.paymentStatus;
+      data.paymentStatus = body.paymentStatus;
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(data).length === 0) {
       return NextResponse.json(
         { success: false, message: "No valid updates provided." },
         { status: 400 }
       );
     }
 
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      { $set: updates },
-      { new: true, runValidators: true }
-    ).lean();
-
-    if (!order) {
-      return NextResponse.json(
-        { success: false, message: "Order not found." },
-        { status: 404 }
-      );
-    }
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data,
+    });
 
     return NextResponse.json({
       success: true,
       message: "Order updated successfully.",
-      order,
+      order: {
+        _id: updated.id,
+        id: updated.id,
+        orderNumber: updated.orderNumber,
+        customer: updated.customer,
+        shippingAddress: (updated.customer as any)?.shippingAddress,
+        items: updated.items,
+        subtotal: Number(updated.subtotal),
+        shippingFee: Number(updated.shippingFee),
+        total: Number(updated.total),
+        paymentMethod: updated.paymentMethod,
+        paymentStatus: updated.paymentStatus,
+        orderStatus: updated.orderStatus,
+        createdAt: updated.createdAt,
+      },
     });
   } catch (error) {
     console.error("Update order error:", error);

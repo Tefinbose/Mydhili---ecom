@@ -1,8 +1,6 @@
-
 import { NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth";
-import Order from "@/models/Order";
 
 export async function GET() {
   const session = await getAdminSession();
@@ -15,59 +13,54 @@ export async function GET() {
   }
 
   try {
+    const orders = await prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+    });
 
-    await connectToDatabase();
+    const customerMap = new Map<string, {
+      id: string;
+      name: string;
+      email: string;
+      phone: string;
+      totalOrders: number;
+      totalSpent: number;
+      lastOrderDate: Date;
+    }>();
 
-    const customers = await Order.aggregate([
-      {
-        $match: {
-          "customer.email": { $exists: true, $ne: "" },
-        },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $group: {
-          _id: {
-            $toLower: { $trim: { input: "$customer.email" } },
-          },
-          name: { $first: "$customer.name" },
-          email: { $first: "$customer.email" },
-          phone: { $first: "$customer.phone" },
-          totalOrders: { $sum: 1 },
-          totalSpent: {
-            $sum: {
-              $cond: [
-                { $ne: ["$orderStatus", "cancelled"] },
-                { $ifNull: ["$total", 0] },
-                0,
-              ],
-            },
-          },
-          lastOrderDate: { $max: "$createdAt" },
-        },
-      },
-      {
-        $sort: { lastOrderDate: -1 },
-      },
-      {
-        $project: {
-          _id: 0,
-          id: "$_id",
-          name: 1,
-          email: 1,
-          phone: 1,
+    for (const order of orders) {
+      const cust = (order.customer as any) || {};
+      const email = String(cust.email || "").trim().toLowerCase();
+      if (!email) continue;
+
+      const existing = customerMap.get(email);
+      const orderTotal = order.orderStatus !== "cancelled" ? Number(order.total) : 0;
+
+      if (!existing) {
+        customerMap.set(email, {
+          id: email,
+          name: cust.name || "",
+          email: cust.email || email,
+          phone: cust.phone || "",
           totalOrders: 1,
-          totalSpent: 1,
-          lastOrderDate: 1,
-        },
-      },
-    ]);
+          totalSpent: orderTotal,
+          lastOrderDate: order.createdAt,
+        });
+      } else {
+        existing.totalOrders += 1;
+        existing.totalSpent += orderTotal;
+        if (order.createdAt > existing.lastOrderDate) {
+          existing.lastOrderDate = order.createdAt;
+        }
+      }
+    }
+
+    const customers = Array.from(customerMap.values()).sort(
+      (a, b) => new Date(b.lastOrderDate).getTime() - new Date(a.lastOrderDate).getTime()
+    );
 
     return NextResponse.json({
       success: true,
-      customers: JSON.parse(JSON.stringify(customers)),
+      customers,
     });
   } catch (error) {
     console.error("CUSTOMERS API ERROR:", error);

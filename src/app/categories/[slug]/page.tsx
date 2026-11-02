@@ -4,8 +4,7 @@ import Image from "next/image";
 import { connection } from "next/server";
 import { Bricolage_Grotesque } from "next/font/google";
 import { ArrowLeft, ChevronRight } from "lucide-react";
-import { connectToDatabase } from "@/lib/mongodb";
-import Category from "@/models/Category";
+import { prisma } from "@/lib/prisma";
 import ShopProducts from "@/components/shop/ShopProducts";
 
 export const instant = false;
@@ -63,12 +62,12 @@ async function getCategoryInfo(slug: string) {
   const defaultBg = categoryBackgrounds[normalizedSlug] || fallbackBackground;
 
   try {
-    await connectToDatabase();
-    const category = await Category.findOne({ slug: normalizedSlug, isActive: true }).lean();
+    const category = await prisma.category.findFirst({
+      where: { slug: normalizedSlug, isActive: true },
+    });
 
-    if (category && typeof category === "object") {
-      const cat = category as { name?: string; description?: string; image?: string };
-      const img = cat.image?.trim() ?? "";
+    if (category) {
+      const img = category.image?.trim() ?? "";
       const hasCustomImage =
         img.length > 0 &&
         (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("/")) &&
@@ -76,8 +75,8 @@ async function getCategoryInfo(slug: string) {
         !img.includes("images.unsplash.com");
 
       return {
-        name: cat.name || formatTitle(slug),
-        description: cat.description || fallbackDescription(slug),
+        name: category.name || formatTitle(slug),
+        description: category.description || fallbackDescription(slug),
         image: categoryBackgrounds[normalizedSlug] || (hasCustomImage ? img : defaultBg),
       };
     }
@@ -90,9 +89,12 @@ async function getCategoryInfo(slug: string) {
 
 async function getAllCategories(): Promise<CategoryLink[]> {
   try {
-    await connectToDatabase();
-    const list = await Category.find({ isActive: true }).select("name slug").lean();
-    return (list as unknown as CategoryLink[]).map((c) => ({ name: c.name, slug: c.slug }));
+    const list = await prisma.category.findMany({
+      where: { isActive: true },
+      select: { name: true, slug: true },
+      orderBy: { name: "asc" },
+    });
+    return list;
   } catch (error) {
     console.error("Failed to fetch categories:", error);
     return [];

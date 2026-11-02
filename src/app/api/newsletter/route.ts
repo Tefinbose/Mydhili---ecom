@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
-import Newsletter from "@/models/Newsletter";
+import { prisma } from "@/lib/prisma";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,9 +15,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectToDatabase();
-
-    const existing = await Newsletter.findOne({ email: rawEmail });
+    const existing = await prisma.newsletter.findUnique({
+      where: { email: rawEmail },
+    });
 
     if (existing) {
       if (existing.status === "active") {
@@ -29,8 +28,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Re-activate if was unsubscribed
-      existing.status = "active";
-      await existing.save();
+      await prisma.newsletter.update({
+        where: { id: existing.id },
+        data: { status: "active" },
+      });
 
       return NextResponse.json({
         success: true,
@@ -38,10 +39,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    await Newsletter.create({
-      email: rawEmail,
-      status: "active",
-      source: typeof body?.source === "string" ? body.source.slice(0, 50) : "website_footer",
+    await prisma.newsletter.create({
+      data: {
+        email: rawEmail,
+        status: "active",
+        source: typeof body?.source === "string" ? body.source.slice(0, 50) : "website_footer",
+      },
     });
 
     return NextResponse.json({

@@ -1,11 +1,6 @@
-
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
-
-import { connectToDatabase } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth";
-import Product from "@/models/Product";
-import Category from "@/models/Category";
 
 function createSlug(value: string) {
   return value
@@ -30,24 +25,44 @@ export async function GET() {
       );
     }
 
-    await connectToDatabase();
+    const [productsRaw, categories] = await Promise.all([
+      prisma.product.findMany({
+        include: {
+          category: {
+            select: { id: true, name: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
 
-    const [products, categories] = await Promise.all([
-      Product.find({})
-        .populate("category", "name")
-        .sort({ createdAt: -1 })
-        .lean(),
-
-      Category.find({})
-        .select("name isActive")
-        .sort({ name: 1 })
-        .lean(),
+      prisma.category.findMany({
+        select: { id: true, name: true, isActive: true },
+        orderBy: { name: "asc" },
+      }),
     ]);
+
+    const products = productsRaw.map((p: any) => ({
+      _id: p.id,
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      shortDescription: p.shortDescription,
+      price: Number(p.price),
+      compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : null,
+      images: p.images,
+      variants: p.variants,
+      isFeatured: p.isFeatured,
+      isActive: p.isActive,
+      category: p.category ? { _id: p.category.id, id: p.category.id, name: p.category.name } : null,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    }));
 
     return NextResponse.json({
       success: true,
       products,
-      categories,
+      categories: categories.map((c: any) => ({ _id: c.id, id: c.id, name: c.name, isActive: c.isActive })),
     });
   } catch (error) {
     console.error("Fetch products error:", error);
@@ -69,8 +84,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectToDatabase();
-
     const body = await request.json();
 
     const name = String(body.name ?? "").trim();
@@ -81,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     const compareAtPrice =
       body.compareAtPrice === "" || body.compareAtPrice == null
-        ? undefined
+        ? null
         : Number(body.compareAtPrice);
 
     const images = Array.isArray(body.images)
@@ -131,13 +144,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
-      return NextResponse.json(
-        { success: false, message: "Please select a valid category." },
-        { status: 400 }
-      );
-    }
-
     if (!Number.isFinite(price) || price < 0) {
       return NextResponse.json(
         { success: false, message: "Please enter a valid selling price." },
@@ -146,7 +152,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (
-      compareAtPrice !== undefined &&
+      compareAtPrice !== null &&
       (!Number.isFinite(compareAtPrice) || compareAtPrice < price)
     ) {
       return NextResponse.json(
@@ -181,9 +187,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const categoryExists = await Category.findOne({
-      _id: categoryId,
-      isActive: true,
+    const categoryExists = await prisma.category.findFirst({
+      where: {
+        id: categoryId,
+        isActive: true,
+      },
     });
 
     if (!categoryExists) {
@@ -205,30 +213,53 @@ export async function POST(request: NextRequest) {
     let slug = baseSlug;
     let suffix = 1;
 
-    while (await Product.findOne({ slug })) {
+    while (await prisma.product.findUnique({ where: { slug } })) {
       slug = `${baseSlug}-${suffix}`;
       suffix++;
     }
 
-    const product = await Product.create({
-      name,
-      slug,
-      description,
-      shortDescription,
-      category: categoryId,
-      price,
-      compareAtPrice,
-      images,
-      variants,
-      isFeatured: Boolean(body.isFeatured),
-      isActive: body.isActive !== false,
+    const product = await prisma.product.create({
+      data: {
+        name,
+        slug,
+        description,
+        shortDescription,
+        categoryId: categoryId,
+        price,
+        compareAtPrice,
+        images,
+        variants,
+        isFeatured: Boolean(body.isFeatured),
+        isActive: body.isActive !== false,
+      },
+      include: {
+        category: {
+          select: { id: true, name: true },
+        },
+      },
     });
 
     return NextResponse.json(
       {
         success: true,
         message: "Product created successfully.",
-        product,
+        product: {
+          _id: product.id,
+          id: product.id,
+          name: product.name,
+          slug: product.slug,
+          description: product.description,
+          shortDescription: product.shortDescription,
+          price: Number(product.price),
+          compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+          images: product.images,
+          variants: product.variants,
+          isFeatured: product.isFeatured,
+          isActive: product.isActive,
+          category: product.category ? { _id: product.category.id, id: product.category.id, name: product.category.name } : null,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        },
       },
       { status: 201 }
     );

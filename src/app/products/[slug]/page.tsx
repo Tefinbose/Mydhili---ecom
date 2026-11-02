@@ -5,8 +5,7 @@ import { notFound } from "next/navigation";
 import { Bricolage_Grotesque } from "next/font/google";
 import { ArrowLeft, ArrowUpRight, CircleCheck, CircleX, RefreshCw, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 
-import { connectToDatabase } from "@/lib/mongodb";
-import Product from "@/models/Product";
+import { prisma } from "@/lib/prisma";
 import ProductPurchaseOptions from "@/components/cart/ProductPurchaseOptions";
 
 export const instant = false;
@@ -67,12 +66,36 @@ function formatCategory(category?: string) {
 }
 
 async function getProduct(slug: string): Promise<ProductData | null> {
-  await connectToDatabase();
+  try {
+    const product = await prisma.product.findFirst({
+      where: { slug, isActive: true },
+      include: {
+        category: {
+          select: { name: true, slug: true },
+        },
+      },
+    });
 
-  const product = await Product.findOne({ slug, isActive: true }).lean();
-  if (!product) return null;
+    if (!product) return null;
 
-  return JSON.parse(JSON.stringify(product)) as ProductData;
+    return {
+      _id: product.id,
+      name: product.name,
+      slug: product.slug,
+      description: product.description ?? undefined,
+      shortDescription: product.shortDescription ?? undefined,
+      category: product.category?.name ?? undefined,
+      price: Number(product.price),
+      compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : undefined,
+      images: Array.isArray(product.images) ? (product.images as string[]) : [],
+      variants: Array.isArray(product.variants) ? (product.variants as unknown as ProductVariant[]) : [],
+      isFeatured: product.isFeatured,
+      isActive: product.isActive,
+    };
+  } catch (error) {
+    console.error("Failed to fetch product:", error);
+    return null;
+  }
 }
 
 export default async function ProductDetailPage({

@@ -1,16 +1,21 @@
-
 import { NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
-import Product from "@/models/Product";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    await connectToDatabase();
-
-    const products = await Product.find({ isActive: true })
-      .populate("category", "name slug")
-      .sort({ createdAt: -1 })
-      .lean();
+    const products = await prisma.product.findMany({
+      where: { isActive: true },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
     return NextResponse.json(
       {

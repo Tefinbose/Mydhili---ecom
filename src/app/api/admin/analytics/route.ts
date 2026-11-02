@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth";
-import Order from "@/models/Order";
-import Product from "@/models/Product";
-import Category from "@/models/Category";
 
 export async function GET(request: NextRequest) {
   const session = await getAdminSession();
@@ -15,9 +12,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-
-    await connectToDatabase();
-
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "30d"; // '7d' | '30d' | '90d' | 'all'
 
@@ -35,21 +29,23 @@ export async function GET(request: NextRequest) {
       startDate = null; // all time
     }
 
-    const orderFilter: Record<string, unknown> = {};
+    const where: { createdAt?: { gte: Date } } = {};
     if (startDate) {
-      orderFilter.createdAt = { $gte: startDate };
+      where.createdAt = { gte: startDate };
     }
 
     // Fetch all orders matching period
-    const [orders, recentOrdersRaw] = await Promise.all([
-      Order.find(orderFilter).sort({ createdAt: -1 }).lean(),
-      Order.find().sort({ createdAt: -1 }).limit(6).lean(),
-    ]);
-
-    // Also fetch all products and categories for catalog insights
-    const [totalProductsCount, totalCategories] = await Promise.all([
-      Product.countDocuments({ isActive: true }),
-      Category.find().lean(),
+    const [orders, recentOrdersRaw, totalProductsCount, totalCategories] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.order.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 6,
+      }),
+      prisma.product.count({ where: { isActive: true } }),
+      prisma.category.findMany(),
     ]);
 
     // Compute KPIs
@@ -110,6 +106,7 @@ export async function GET(request: NextRequest) {
     for (const order of orders) {
       const orderTotal = Number(order.total) || 0;
       const isCancelled = order.orderStatus === "cancelled";
+      const cust = (order.customer as any) || {};
 
       if (!isCancelled) {
         totalRevenue += orderTotal;
@@ -138,8 +135,8 @@ export async function GET(request: NextRequest) {
         codCount++;
       }
 
-      if (order.customer?.email) {
-        customerSet.add(order.customer.email.toLowerCase());
+      if (cust.email) {
+        customerSet.add(String(cust.email).toLowerCase());
       }
 
       const statusKey = order.orderStatus || "pending";
@@ -147,32 +144,31 @@ export async function GET(request: NextRequest) {
 
       // Group by day
       let orderUnits = 0;
-      if (Array.isArray(order.items)) {
-        for (const item of order.items) {
-          const qty = Number(item.quantity) || 1;
-          orderUnits += qty;
-          const itemRev = (Number(item.price) || 0) * qty;
+      const items = Array.isArray(order.items) ? (order.items as any[]) : [];
+      for (const item of items) {
+        const qty = Number(item.quantity) || 1;
+        orderUnits += qty;
+        const itemRev = (Number(item.price) || 0) * qty;
 
-          if (!isCancelled) {
-            totalUnitsSold += qty;
-          }
-
-          const key = String(item.productId || item.name);
-          const current = productSalesMap.get(key) || {
-            name: item.name || "Product",
-            slug: item.slug || "",
-            image: item.image || "",
-            quantity: 0,
-            revenue: 0,
-          };
-
-          if (!isCancelled) {
-            current.quantity += qty;
-            current.revenue += itemRev;
-          }
-
-          productSalesMap.set(key, current);
+        if (!isCancelled) {
+          totalUnitsSold += qty;
         }
+
+        const key = String(item.productId || item.name);
+        const current = productSalesMap.get(key) || {
+          name: item.name || "Product",
+          slug: item.slug || "",
+          image: item.image || "",
+          quantity: 0,
+          revenue: 0,
+        };
+
+        if (!isCancelled) {
+          current.quantity += qty;
+          current.revenue += itemRev;
+        }
+
+        productSalesMap.set(key, current);
       }
 
       if (order.createdAt) {
@@ -222,19 +218,20 @@ export async function GET(request: NextRequest) {
     );
 
     // Map Category sales
-    const categoryMap = new Map(
-      totalCategories.map((c) => [String(c._id), c.name])
+    const categoryMap = new Map<string, string>(
+      totalCategories.map((c: any) => [String(c.id), String(c.name)])
     );
 
-    // Category distribution estimate from catalog products
-    const products = await Product.find({ isActive: true })
-      .select("category price")
-      .lean();
+    // Category distribution from catalog products
+    const products = await prisma.product.findMany({
+      where: { isActive: true },
+      select: { categoryId: true, price: true },
+    });
 
     const categoryDistributionMap = new Map<string, { name: string; count: number }>();
-    for (const p of products) {
-      const catId = String(p.category);
-      const catName = categoryMap.get(catId) || "Other Collections";
+    for (const p of products as any[]) {
+      const catId = typeof p.categoryId === "string" ? p.categoryId : "";
+      const catName: string = String(categoryMap.get(catId) || "Other Collections");
       const existing = categoryDistributionMap.get(catName) || {
         name: catName,
         count: 0,
@@ -244,7 +241,7 @@ export async function GET(request: NextRequest) {
     }
 
     const categoryDistribution = Array.from(categoryDistributionMap.values()).map(
-      (c) => ({
+      (c: { name: string; count: number }) => ({
         name: c.name,
         count: c.count,
         percentage:
@@ -255,17 +252,20 @@ export async function GET(request: NextRequest) {
     );
 
     // Clean recent orders
-    const recentOrders = recentOrdersRaw.map((o) => ({
-      _id: String(o._id),
-      orderNumber: o.orderNumber || String(o._id).slice(-8).toUpperCase(),
-      customerName: o.customer?.name || "Guest Customer",
-      customerEmail: o.customer?.email || "",
-      total: Number(o.total) || 0,
-      orderStatus: o.orderStatus || "pending",
-      paymentMethod: o.paymentMethod || "cod",
-      itemCount: Array.isArray(o.items) ? o.items.length : 1,
-      createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
-    }));
+    const recentOrders = recentOrdersRaw.map((o: any) => {
+      const cust = (o.customer as any) || {};
+      return {
+        _id: String(o.id),
+        orderNumber: String(o.orderNumber || String(o.id).slice(-8).toUpperCase()),
+        customerName: String(cust.name || "Guest Customer"),
+        customerEmail: String(cust.email || ""),
+        total: Number(o.total) || 0,
+        orderStatus: String(o.orderStatus || "pending"),
+        paymentMethod: String(o.paymentMethod || "cod"),
+        itemCount: Array.isArray(o.items) ? (o.items as any[]).length : 1,
+        createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
+      };
+    });
 
     return NextResponse.json({
       success: true,

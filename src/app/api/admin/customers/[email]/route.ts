@@ -1,8 +1,6 @@
-
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth";
-import Order from "@/models/Order";
 
 type RouteContext = {
   params: Promise<{ email: string }>;
@@ -22,7 +20,6 @@ export async function GET(
   }
 
   try {
-
     const { email } = await context.params;
     const customerEmail = decodeURIComponent(email).trim().toLowerCase();
 
@@ -33,16 +30,31 @@ export async function GET(
       );
     }
 
-    await connectToDatabase();
+    const allOrders = await prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+    });
 
-    const orders = await Order.find({
-      "customer.email": {
-        $regex: `^${customerEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
-        $options: "i",
-      },
-    })
-      .sort({ createdAt: -1 })
-      .lean();
+    const orders = allOrders.filter((o: any) => {
+      const cust = (o.customer as any) || {};
+      return String(cust.email || "").trim().toLowerCase() === customerEmail;
+    }).map((order: any) => {
+      const cust = (order.customer as any) || {};
+      return {
+        _id: order.id,
+        id: order.id,
+        orderNumber: order.orderNumber,
+        customer: cust,
+        shippingAddress: cust.shippingAddress || null,
+        items: order.items,
+        subtotal: Number(order.subtotal),
+        shippingFee: Number(order.shippingFee),
+        total: Number(order.total),
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+        orderStatus: order.orderStatus,
+        createdAt: order.createdAt,
+      };
+    });
 
     if (orders.length === 0) {
       return NextResponse.json(
@@ -53,7 +65,7 @@ export async function GET(
 
     const latestOrder = orders[0];
     const totalSpent = orders.reduce(
-      (sum, order) =>
+      (sum: number, order: any) =>
         order.orderStatus !== "cancelled"
           ? sum + (order.total || 0)
           : sum,
@@ -72,7 +84,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       customer,
-      orders: JSON.parse(JSON.stringify(orders)),
+      orders,
     });
   } catch (error) {
     console.error("CUSTOMER DETAILS API ERROR:", error);
