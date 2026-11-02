@@ -6,9 +6,6 @@ import { Bricolage_Grotesque } from "next/font/google";
 import { ArrowLeft, ArrowUpRight, CircleCheck, CircleX, RefreshCw, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
-import { connectToDatabase } from "@/lib/mongodb";
-import Product from "@/models/Product";
-import "@/models/Category";
 import ProductPurchaseOptions from "@/components/cart/ProductPurchaseOptions";
 
 export const instant = false;
@@ -79,61 +76,26 @@ async function getProduct(slug: string): Promise<ProductData | null> {
       },
     });
 
-    if (product) {
-      return {
-        _id: product.id,
-        name: product.name,
-        slug: product.slug,
-        description: product.description ?? undefined,
-        shortDescription: product.shortDescription ?? undefined,
-        category: product.category?.name ?? undefined,
-        price: Number(product.price),
-        compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : undefined,
-        images: Array.isArray(product.images) ? (product.images as string[]) : [],
-        variants: Array.isArray(product.variants) ? (product.variants as unknown as ProductVariant[]) : [],
-        isFeatured: product.isFeatured,
-        isActive: product.isActive,
-      };
-    }
+    if (!product) return null;
+
+    return {
+      _id: product.id,
+      name: product.name,
+      slug: product.slug,
+      description: product.description ?? undefined,
+      shortDescription: product.shortDescription ?? undefined,
+      category: product.category?.name ?? undefined,
+      price: Number(product.price),
+      compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : undefined,
+      images: Array.isArray(product.images) ? (product.images as string[]) : [],
+      variants: Array.isArray(product.variants) ? (product.variants as unknown as ProductVariant[]) : [],
+      isFeatured: product.isFeatured,
+      isActive: product.isActive,
+    };
   } catch (error) {
-    console.warn("Failed to fetch product from Prisma, trying fallback:", error);
+    console.error("Failed to fetch product:", error);
+    return null;
   }
-
-  // MongoDB Fallback
-  if (process.env.MONGODB_URI) {
-    try {
-      await connectToDatabase();
-      const mongoProduct = await Product.findOne({ slug, isActive: true })
-        .populate("category", "name slug")
-        .lean();
-
-      if (mongoProduct) {
-        const cat =
-          typeof mongoProduct.category === "object" && mongoProduct.category
-            ? (mongoProduct.category as any).name
-            : undefined;
-
-        return {
-          _id: String(mongoProduct._id),
-          name: mongoProduct.name,
-          slug: mongoProduct.slug,
-          description: mongoProduct.description ?? undefined,
-          shortDescription: mongoProduct.shortDescription ?? undefined,
-          category: cat,
-          price: Number(mongoProduct.price),
-          compareAtPrice: mongoProduct.compareAtPrice ? Number(mongoProduct.compareAtPrice) : undefined,
-          images: Array.isArray(mongoProduct.images) ? (mongoProduct.images as string[]) : [],
-          variants: Array.isArray(mongoProduct.variants) ? (mongoProduct.variants as unknown as ProductVariant[]) : [],
-          isFeatured: mongoProduct.isFeatured,
-          isActive: mongoProduct.isActive,
-        };
-      }
-    } catch (mongoError) {
-      console.warn("MongoDB product detail fallback failed:", mongoError);
-    }
-  }
-
-  return null;
 }
 
 export default async function ProductDetailPage({

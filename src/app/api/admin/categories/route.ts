@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/mongodb";
-import Category from "@/models/Category";
-import { DEFAULT_CATEGORIES } from "@/lib/constants/categories";
 
 function createSlug(value: string) {
   return value
@@ -28,64 +25,30 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    if (rawCategories && rawCategories.length > 0) {
-      const categories = rawCategories.map((c: any) => ({
-        _id: c.id,
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-        description: c.description,
-        image: c.image,
-        isActive: c.isActive,
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-      }));
+    const categories = rawCategories.map((c: any) => ({
+      _id: c.id,
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
+      image: c.image,
+      isActive: c.isActive,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    }));
 
-      return NextResponse.json({
-        success: true,
-        categories,
-      });
-    }
+    return NextResponse.json({
+      success: true,
+      categories,
+    });
   } catch (error) {
-    console.warn("Prisma admin categories fetch failed, attempting MongoDB:", error);
+    console.error("Get categories error:", error);
+
+    return NextResponse.json(
+      { success: false, message: "Unable to fetch categories." },
+      { status: 500 }
+    );
   }
-
-  // Fallback to MongoDB
-  if (process.env.MONGODB_URI) {
-    try {
-      await connectToDatabase();
-      const mongoCats = await Category.find({})
-        .sort({ createdAt: -1 })
-        .lean();
-
-      if (mongoCats && mongoCats.length > 0) {
-        const categories = mongoCats.map((c: any) => ({
-          _id: String(c._id),
-          id: String(c._id),
-          name: c.name,
-          slug: c.slug,
-          description: c.description,
-          image: c.image,
-          isActive: c.isActive !== false,
-          createdAt: c.createdAt,
-          updatedAt: c.updatedAt,
-        }));
-
-        return NextResponse.json({
-          success: true,
-          categories,
-        });
-      }
-    } catch (mongoError) {
-      console.warn("MongoDB admin categories fallback failed:", mongoError);
-    }
-  }
-
-  // Fallback to DEFAULT_CATEGORIES
-  return NextResponse.json({
-    success: true,
-    categories: DEFAULT_CATEGORIES,
-  });
 }
 
 export async function POST(request: NextRequest) {
