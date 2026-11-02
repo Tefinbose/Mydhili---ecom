@@ -66,62 +66,107 @@ export default async function AdminDashboardPage() {
   await connection();
   const session = await requireAdmin();
 
-  // Load real-time dashboard data concurrently
-  const [
-    totalProducts,
-    activeProducts,
-    totalCategories,
-    totalOrders,
-    pendingOrders,
-    paidOrders,
-    recentOrdersRaw,
-    recentProductsRaw,
-  ] = await Promise.all([
-    prisma.product.count(),
-    prisma.product.count({ where: { isActive: true } }),
-    prisma.category.count(),
-    prisma.order.count(),
-    prisma.order.count({ where: { orderStatus: "pending" } }),
-    prisma.order.findMany({ where: { paymentStatus: "paid" }, select: { total: true } }),
-    prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 6 }),
-    prisma.product.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 4,
-      include: { category: { select: { name: true } } },
-    }),
-  ]);
+  let totalProducts = 0;
+  let activeProducts = 0;
+  let totalCategories = 0;
+  let totalOrders = 0;
+  let pendingOrders = 0;
+  let totalRevenue = 0;
+  let recentOrders: any[] = [];
+  let recentProducts: any[] = [];
+  let dbError: string | null = null;
 
-  const totalRevenue = paidOrders.reduce((sum, o) => sum + Number(o.total), 0);
+  try {
+    const [
+      prodCount,
+      activeProdCount,
+      catCount,
+      ordCount,
+      pendOrdCount,
+      paidOrders,
+      recentOrdersRaw,
+      recentProductsRaw,
+    ] = await Promise.all([
+      prisma.product.count(),
+      prisma.product.count({ where: { isActive: true } }),
+      prisma.category.count(),
+      prisma.order.count(),
+      prisma.order.count({ where: { orderStatus: "pending" } }),
+      prisma.order.findMany({ where: { paymentStatus: "paid" }, select: { total: true } }),
+      prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 6 }),
+      prisma.product.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 4,
+        include: { category: { select: { name: true } } },
+      }),
+    ]);
 
-  const recentOrders = recentOrdersRaw.map((o) => {
-    const cust = (o.customer as any) || {};
-    return {
-      _id: o.id,
-      id: o.id,
-      orderNumber: o.orderNumber,
-      customer: cust,
-      total: Number(o.total),
-      orderStatus: o.orderStatus,
-      paymentMethod: o.paymentMethod,
-      items: o.items,
-      createdAt: o.createdAt,
-    };
-  });
+    totalProducts = prodCount;
+    activeProducts = activeProdCount;
+    totalCategories = catCount;
+    totalOrders = ordCount;
+    pendingOrders = pendOrdCount;
+    totalRevenue = paidOrders.reduce((sum, o) => sum + Number(o.total), 0);
 
-  const recentProducts = recentProductsRaw.map((p) => ({
-    _id: p.id,
-    id: p.id,
-    name: p.name,
-    price: Number(p.price),
-    images: Array.isArray(p.images) ? (p.images as string[]) : [],
-    isActive: p.isActive,
-    category: p.category,
-    createdAt: p.createdAt,
-  }));
+    recentOrders = recentOrdersRaw.map((o) => {
+      const cust = (o.customer as any) || {};
+      return {
+        _id: o.id,
+        id: o.id,
+        orderNumber: o.orderNumber,
+        customer: cust,
+        total: Number(o.total),
+        orderStatus: o.orderStatus,
+        paymentMethod: o.paymentMethod,
+        items: o.items,
+        createdAt: o.createdAt,
+      };
+    });
+
+    recentProducts = recentProductsRaw.map((p) => ({
+      _id: p.id,
+      id: p.id,
+      name: p.name,
+      price: Number(p.price),
+      images: Array.isArray(p.images) ? (p.images as string[]) : [],
+      isActive: p.isActive,
+      category: p.category,
+      createdAt: p.createdAt,
+    }));
+  } catch (error) {
+    console.error("Admin dashboard database error:", error);
+    dbError =
+      error instanceof Error
+        ? error.message
+        : "Database connection failed or DATABASE_URL is not set.";
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] px-4 py-8 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl space-y-8">
+        {/* Database Connection Alert (if database fails) */}
+        {dbError && (
+          <div className="rounded-2xl border border-rose-300 bg-rose-50/80 p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-rose-900">
+                  Database Connection Warning
+                </p>
+                <p className="text-xs text-rose-700">
+                  The dashboard is currently running in offline fallback mode because the database could not be reached:
+                </p>
+                <p className="rounded bg-rose-100/70 p-2 font-mono text-[11px] text-rose-800">
+                  {dbError}
+                </p>
+                <p className="text-xs text-rose-600">
+                  Tip: Ensure <code className="font-semibold text-rose-800">DATABASE_URL</code> is properly configured in your Vercel project environment variables.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Top Header / Greeting */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
