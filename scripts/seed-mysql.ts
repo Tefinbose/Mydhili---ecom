@@ -197,6 +197,23 @@ async function seedMySQL() {
       isFeatured: true,
       isActive: true,
     },
+    {
+      name: "Heritage Handloom Cotton Check Lungi",
+      slug: "heritage-handloom-cotton-lungi",
+      description:
+        "Crafted from 100% pure combed handloom cotton, this traditional South Indian lungi offers timeless comfort, breathability, and authentic woven borders.",
+      shortDescription: "Handloom pure cotton traditional lungi",
+      categorySlug: "lungi",
+      price: 449.0,
+      compareAtPrice: 599.0,
+      images: ["/categories/lungi.jpg"],
+      variants: [
+        { sku: "MC-LNG-001", size: "Free Size", color: "Amber Check", stock: 20 },
+        { sku: "MC-LNG-002", size: "Free Size", color: "Indigo Check", stock: 15 },
+      ],
+      isFeatured: true,
+      isActive: true,
+    },
   ];
 
   for (const prod of sampleProducts) {
