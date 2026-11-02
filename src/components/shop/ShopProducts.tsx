@@ -20,7 +20,8 @@ type Category = {
 };
 
 type Product = {
-  _id: string;
+  id?: string;
+  _id?: string;
   name: string;
   slug: string;
   description?: string;
@@ -158,13 +159,14 @@ export default function ShopProducts({
   }, [products, selectedCategory, search, sort]);
 
   const handleToggleWishlist = (product: Product) => {
+    const productId = product.id || product._id || product.slug;
     const validImage =
       product.images?.find(
         (img) => typeof img === "string" && img.trim().length > 0
       ) || fallbackImage;
 
     toggleWishlist({
-      productId: product._id,
+      productId,
       slug: product.slug,
       name: product.name,
       price: product.price,
@@ -382,8 +384,11 @@ export default function ShopProducts({
                     ? product.category.name
                     : "";
 
+                const productId = product.id || product._id || product.slug;
+                const isProductWishlisted = isInWishlist(productId);
+
                 return (
-                  <article key={product._id} className="group min-w-0 transition-all duration-500 hover:-translate-y-1.5">
+                  <article key={productId} className="group min-w-0 transition-all duration-500 hover:-translate-y-1.5">
                     <div className="relative overflow-hidden rounded-2xl bg-[#F0E7DC] shadow-[0_4px_20px_rgba(56,7,18,0.05)] transition-all duration-500 group-hover:shadow-[0_18px_40px_rgba(56,7,18,0.14)]">
                       <Link
                         href={`/products/${product.slug}`}
@@ -417,13 +422,13 @@ export default function ShopProducts({
                         type="button"
                         onClick={() => handleToggleWishlist(product)}
                         aria-label={
-                          isInWishlist(product._id)
+                          isProductWishlisted
                             ? `Remove ${product.name} from wishlist`
                             : `Add ${product.name} to wishlist`
                         }
-                        aria-pressed={isInWishlist(product._id)}
+                        aria-pressed={isProductWishlisted}
                         className={`absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full shadow-sm transition sm:right-3 sm:top-3 ${
-                          isInWishlist(product._id)
+                          isProductWishlisted
                             ? "bg-[#380712] text-[#E6C47A]"
                             : "bg-white/95 text-[#380712] hover:bg-[#380712] hover:text-[#E6C47A]"
                         }`}
@@ -431,7 +436,7 @@ export default function ShopProducts({
                         <Heart
                           size={17}
                           fill={
-                            isInWishlist(product._id)
+                            isProductWishlisted
                               ? "currentColor"
                               : "none"
                           }

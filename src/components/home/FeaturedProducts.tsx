@@ -13,7 +13,8 @@ const bricolage = Bricolage_Grotesque({
 });
 
 type Product = {
-  _id: string;
+  id?: string;
+  _id?: string;
   name: string;
   slug: string;
   price: number;
@@ -145,14 +146,15 @@ export default function FeaturedProducts() {
         ) : (
           <div className="grid grid-cols-2 gap-x-3 gap-y-9 sm:gap-x-6 sm:gap-y-12 lg:grid-cols-4">
             {products.map((product, index) => {
+              const productId = product.id || product._id || product.slug;
               const validImages = (product.images ?? []).filter(Boolean);
               const primary =
                 validImages[0] || fallbackImages[index % fallbackImages.length];
               const secondary = validImages[1];
 
-              const primaryBroken = brokenImages.includes(`${product._id}-1`);
-              const secondaryBroken = brokenImages.includes(`${product._id}-2`);
-              const isWishlisted = isInWishlist(product._id);
+              const primaryBroken = brokenImages.includes(`${productId}-1`);
+              const secondaryBroken = brokenImages.includes(`${productId}-2`);
+              const isWishlisted = isInWishlist(productId);
 
               const hasDiscount =
                 !!product.compareAtPrice && product.compareAtPrice > product.price;
@@ -165,7 +167,7 @@ export default function FeaturedProducts() {
                 : 0;
 
               return (
-                <article key={product._id} className="group min-w-0">
+                <article key={productId} className="group min-w-0">
                   <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#380712] to-[#6D2636] shadow-[0_10px_30px_rgba(56,7,18,0.07)] transition-all duration-500 ease-out group-hover:-translate-y-1.5 group-hover:shadow-[0_24px_50px_rgba(56,7,18,0.22)]">
                     <Link
                       href={`/products/${product.slug}`}
@@ -178,7 +180,7 @@ export default function FeaturedProducts() {
                           src={primary}
                           alt={product.name}
                           loading="lazy"
-                          onError={() => markBroken(`${product._id}-1`)}
+                          onError={() => markBroken(`${productId}-1`)}
                           className={`absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-out ${
                             secondary && !secondaryBroken
                               ? "group-hover:scale-105 group-hover:opacity-0"
@@ -194,7 +196,7 @@ export default function FeaturedProducts() {
                           src={secondary}
                           alt=""
                           loading="lazy"
-                          onError={() => markBroken(`${product._id}-2`)}
+                          onError={() => markBroken(`${productId}-2`)}
                           className="absolute inset-0 h-full w-full scale-105 object-cover opacity-0 transition-all duration-700 ease-out group-hover:scale-100 group-hover:opacity-100"
                         />
                       )}
@@ -218,7 +220,7 @@ export default function FeaturedProducts() {
                       type="button"
                       onClick={() =>
                         toggleWishlist({
-                          productId: product._id,
+                          productId,
                           slug: product.slug,
                           name: product.name,
                           price: product.price,

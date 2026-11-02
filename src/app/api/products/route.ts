@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const products = await prisma.product.findMany({
+    const rawProducts = await prisma.product.findMany({
       where: { isActive: true },
       include: {
         category: {
@@ -16,6 +16,20 @@ export async function GET() {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    const products = rawProducts.map((p) => ({
+      ...p,
+      _id: p.id,
+      id: p.id,
+      price: Number(p.price),
+      compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : null,
+      category: p.category
+        ? {
+            ...p.category,
+            _id: p.category.id,
+          }
+        : null,
+    }));
 
     return NextResponse.json(
       {
