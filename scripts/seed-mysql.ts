@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
 import { PrismaClient } from "@prisma/client";
+import { DEFAULT_CATEGORIES } from "../src/lib/constants/categories";
 
 const prisma = new PrismaClient();
 
@@ -9,56 +10,7 @@ async function seedMySQL() {
   console.log("Starting MySQL seed...");
 
   // 1. Categories
-  const categories = [
-    {
-      name: "Sarees",
-      slug: "sarees",
-      description: "Timeless sarees for celebrations, weddings, and traditional occasions.",
-      image: "/categories/saree.jpg",
-    },
-    {
-      name: "Kurtis",
-      slug: "kurtis",
-      description: "Elegant and comfortable kurtis for everyday wear and festive gatherings.",
-      image: "/categories/kurtis.avif",
-    },
-    {
-      name: "Ethnic Wear",
-      slug: "ethnic-wear",
-      description: "Beautiful ethnic outfits crafted with a luxurious contemporary touch.",
-      image: "/categories/ethnicwear.jpg",
-    },
-    {
-      name: "Dresses",
-      slug: "dresses",
-      description: "Modern, flowy boutique dresses tailored for every memorable moment.",
-      image: "/categories/dresses.jpg",
-    },
-    {
-      name: "Blouses",
-      slug: "blouses",
-      description: "Artisan-tailored designer blouses to perfectly complement your saree.",
-      image: "/categories/blouse.webp",
-    },
-    {
-      name: "Accessories",
-      slug: "accessories",
-      description: "Exquisite hand-finished accessories and clutches to complete your ensemble.",
-      image: "/categories/accessories.jpg",
-    },
-    {
-      name: "Lehenga",
-      slug: "lehenga",
-      description: "Majestic bridal and festive lehengas with intricate zari and embroidery.",
-      image: "/categories/lehenga.jpg",
-    },
-    {
-      name: "Salwar Suits",
-      slug: "salwar-suits",
-      description: "Graceful salwar suits and anarkalis designed for graceful silhouettes.",
-      image: "/categories/salvarsuits.jpg",
-    },
-  ];
+  const categories = DEFAULT_CATEGORIES;
 
   const categoryMap = new Map<string, string>();
 

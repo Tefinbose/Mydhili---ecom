@@ -40,6 +40,130 @@ type CategoryStyle = { subtitle: string; icon: typeof Shirt; image: string };
 
 // Best results: replace these with your own photos, e.g. "/categories/sarees.jpg"
 const categoryStyles: Record<string, CategoryStyle> = {
+  // Main Department Categories
+  gents: {
+    subtitle: "Shirts, mundu, lungi & more",
+    icon: Shirt,
+    image: "/categories/gents.jpg",
+  },
+  ladies: {
+    subtitle: "Churidars, kurthies, sarees & more",
+    icon: Flower2,
+    image: "/categories/saree.jpg",
+  },
+  kids: {
+    subtitle: "Boys & girls collection",
+    icon: Crown,
+    image: "/categories/kids.jpg",
+  },
+  accessories: {
+    subtitle: "Belts, socks, caps & perfumes",
+    icon: Gift,
+    image: "/categories/accessories.jpg",
+  },
+
+  // Gents collections
+  shirts: {
+    subtitle: "Crisp tailored cuts",
+    icon: Shirt,
+    image: "/categories/shirts.jpg",
+  },
+  "t-shirts": {
+    subtitle: "Comfortable everyday wear",
+    icon: Shirt,
+    image: "/categories/tshirts.jpg",
+  },
+  pants: {
+    subtitle: "Smart formal & casual fit",
+    icon: Shirt,
+    image: "/categories/pants.jpg",
+  },
+  "gents-pants": {
+    subtitle: "Smart formal & casual fit",
+    icon: Shirt,
+    image: "/categories/pants.jpg",
+  },
+  "track-suit": {
+    subtitle: "Active & loungewear",
+    icon: Shirt,
+    image: "/categories/tracksuit.jpg",
+  },
+  "three-forth": {
+    subtitle: "Relaxed 3/4th comfort",
+    icon: Shirt,
+    image: "/categories/pants.jpg",
+  },
+  shorts: {
+    subtitle: "Casual breathable fit",
+    icon: Shirt,
+    image: "/categories/pants.jpg",
+  },
+  lungi: {
+    subtitle: "Classic cotton lungis",
+    icon: Shirt,
+    image: "/categories/lungi.jpg",
+  },
+  mundu: {
+    subtitle: "Traditional Kerala wear",
+    icon: Shirt,
+    image: "/categories/mundu.jpg",
+  },
+
+  // Ladies collections
+  "readymade-churidars": {
+    subtitle: "Graceful festive silhouettes",
+    icon: Shirt,
+    image: "/categories/salvarsuits.jpg",
+  },
+  "cot-set": {
+    subtitle: "Chic contemporary sets",
+    icon: ShoppingBag,
+    image: "/categories/cotset.jpg",
+  },
+  "ladies-pants": {
+    subtitle: "Tailored ladies trousers",
+    icon: Shirt,
+    image: "/categories/pants.jpg",
+  },
+  "night-wears": {
+    subtitle: "Soft breathable loungewear",
+    icon: Shirt,
+    image: "/categories/nightwears.jpg",
+  },
+  "boys-girls": {
+    subtitle: "Cute celebration wear",
+    icon: Crown,
+    image: "/categories/kids.jpg",
+  },
+
+  // Accessories collections
+  belts: {
+    subtitle: "Finely finished belts",
+    icon: Gift,
+    image: "/categories/accessories.jpg",
+  },
+  socks: {
+    subtitle: "Cotton comfort socks",
+    icon: Gift,
+    image: "/categories/accessories.jpg",
+  },
+  caps: {
+    subtitle: "Classic stylish caps",
+    icon: Gift,
+    image: "/categories/accessories.jpg",
+  },
+  "baby-shoes": {
+    subtitle: "Gentle cushioned shoes",
+    icon: Gift,
+    image: "/categories/accessories.jpg",
+  },
+  perfumes: {
+    subtitle: "Signature boutique scents",
+    icon: Gift,
+    image: "/categories/perfumes.jpg",
+  },
+
+  // Classic collections
   kurtis: {
     subtitle: "Everyday elegance",
     icon: Shirt,
@@ -89,16 +213,6 @@ const categoryStyles: Record<string, CategoryStyle> = {
     subtitle: "Beautiful finishing touches",
     icon: Gem,
     image: "/categories/blouse.webp",
-  },
-  accessories: {
-    subtitle: "The perfect details",
-    icon: Gift,
-    image: "/categories/accessories.jpg",
-  },
-  accessory: {
-    subtitle: "The perfect details",
-    icon: Gift,
-    image: "/categories/accessories.jpg",
   },
   lehengas: {
     subtitle: "Royal celebrations",

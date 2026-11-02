@@ -16,7 +16,10 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { DEFAULT_CATEGORIES } from "@/lib/constants/categories";
+import {
+  DEFAULT_CATEGORIES,
+  CATEGORY_GROUPS,
+} from "@/lib/constants/categories";
 
 type Category = {
   id?: string;
@@ -222,52 +225,64 @@ export default function Navbar() {
               </button>
 
               <div
-                className={`absolute left-1/2 top-full z-50 w-72 -translate-x-1/2 transition-all duration-200 ${categoryMenuOpen
+                className={`absolute left-1/2 top-full z-50 w-[780px] xl:w-[840px] -translate-x-1/2 transition-all duration-200 ${
+                  categoryMenuOpen
                     ? "visible translate-y-0 opacity-100"
                     : "invisible -translate-y-1 opacity-0 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
-                  }`}
+                }`}
               >
-                <div className="mt-px border border-[#D4AF69]/30 bg-white p-2 shadow-[0_15px_40px_rgba(56,7,18,0.12)]">
-                  <div className="border-b border-[#380712]/10 px-4 py-3">
-                    <p className="font-serif text-lg text-[#380712]">
-                      Find your style
-                    </p>
-                    <p className="mt-0.5 text-[10px] uppercase tracking-[0.18em] text-[#9A6B35]">
-                      Explore the collection
-                    </p>
+                <div className="mt-px border border-[#D4AF69]/30 bg-white p-6 shadow-[0_20px_45px_rgba(56,7,18,0.12)]">
+                  <div className="mb-4 flex items-center justify-between border-b border-[#380712]/10 pb-3">
+                    <div>
+                      <p className="font-serif text-lg text-[#380712]">
+                        Curated Collections
+                      </p>
+                      <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-[#9A6B35]">
+                        Gents, Ladies, Kids & Accessories
+                      </p>
+                    </div>
+                    <Link
+                      href="/shop"
+                      onClick={closeMenus}
+                      className="group/all flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#380712] transition hover:text-[#9A6B35]"
+                    >
+                      <span>Explore All Products</span>
+                      <ArrowUpRight
+                        size={13}
+                        className="transition group-hover/all:translate-x-0.5 group-hover/all:-translate-y-0.5"
+                      />
+                    </Link>
                   </div>
 
-                  {categories.length > 0 ? (
-                    <div className="max-h-[50vh] overflow-y-auto py-1">
-                      {categories.map((category) => (
+                  <div className="grid grid-cols-4 gap-6">
+                    {CATEGORY_GROUPS.map((group) => (
+                      <div key={group.slug} className="flex flex-col">
                         <Link
-                          key={category.id || category._id || category.slug}
-                          href={`/categories/${category.slug}`}
+                          href={`/categories/${group.slug}`}
                           onClick={closeMenus}
-                          className="group/item flex items-center justify-between px-4 py-2.5 text-sm text-stone-700 transition hover:bg-[#FAF7F2] hover:text-[#9A6B35]"
+                          className="group/group-title mb-2.5 flex items-center justify-between border-b border-[#380712]/10 pb-1.5 font-serif text-base font-medium text-[#380712] transition hover:text-[#9A6B35]"
                         >
-                          {category.name}
+                          <span>{group.name}</span>
                           <ArrowUpRight
-                            size={14}
-                            className="text-[#9A6B35] opacity-0 transition group-hover/item:opacity-100"
+                            size={12}
+                            className="text-[#9A6B35] opacity-0 transition group-hover/group-title:opacity-100"
                           />
                         </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="px-4 py-4 text-sm text-stone-500">
-                      Explore all our categories on the shop page.
-                    </p>
-                  )}
-
-                  <Link
-                    href="/shop"
-                    onClick={closeMenus}
-                    className="flex items-center justify-between border-t border-[#380712]/10 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.17em] text-[#380712] transition hover:text-[#9A6B35]"
-                  >
-                    View All Products
-                    <ArrowUpRight size={14} />
-                  </Link>
+                        <div className="flex flex-col space-y-1.5">
+                          {group.subcategories.map((sub) => (
+                            <Link
+                              key={sub.slug}
+                              href={`/categories/${sub.slug}`}
+                              onClick={closeMenus}
+                              className="text-xs text-stone-600 transition hover:translate-x-0.5 hover:text-[#9A6B35]"
+                            >
+                              {sub.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -413,34 +428,38 @@ export default function Navbar() {
             })}
 
             <div className="border-b border-[#380712]/[0.08] py-4">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9A6B35]">
-                Shop by Category
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9A6B35]">
+                Shop by Department
               </p>
 
-              {categories.length > 0 ? (
-                <div className="grid grid-cols-2 gap-x-5">
-                  {categories.map((category) => (
+              <div className="space-y-4">
+                {CATEGORY_GROUPS.map((group) => (
+                  <div key={group.slug} className="space-y-1.5">
                     <Link
-                      key={category.id || category._id || category.slug}
-                      href={`/categories/${category.slug}`}
+                      href={`/categories/${group.slug}`}
                       onClick={closeMenus}
                       tabIndex={menuOpen ? 0 : -1}
-                      className="py-2 text-sm text-stone-600 transition hover:text-[#9A6B35]"
+                      className="flex items-center justify-between font-serif text-base text-[#380712] hover:text-[#9A6B35]"
                     >
-                      {category.name}
+                      <span>{group.name}</span>
+                      <ArrowUpRight size={14} className="text-[#9A6B35]" />
                     </Link>
-                  ))}
-                </div>
-              ) : (
-                <Link
-                  href="/shop"
-                  onClick={closeMenus}
-                  tabIndex={menuOpen ? 0 : -1}
-                  className="text-sm text-stone-600 hover:text-[#9A6B35]"
-                >
-                  Browse all products
-                </Link>
-              )}
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 pl-1">
+                      {group.subcategories.map((sub) => (
+                        <Link
+                          key={sub.slug}
+                          href={`/categories/${sub.slug}`}
+                          onClick={closeMenus}
+                          tabIndex={menuOpen ? 0 : -1}
+                          className="text-xs text-stone-600 transition hover:text-[#9A6B35]"
+                        >
+                          {sub.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <Link

@@ -28,18 +28,68 @@ interface CategoryPageProps {
 type CategoryLink = { name: string; slug: string };
 
 const categoryBackgrounds: Record<string, string> = {
+  // Main Departments
+  gents: "/categories/gents.jpg",
+  gent: "/categories/gents.jpg",
+  men: "/categories/gents.jpg",
+  mens: "/categories/gents.jpg",
+  ladies: "/categories/saree.jpg",
+  lady: "/categories/saree.jpg",
+  women: "/categories/saree.jpg",
+  kids: "/categories/kids.jpg",
+  kid: "/categories/kids.jpg",
+  accessories: "/categories/accessories.jpg",
+  accessory: "/categories/accessories.jpg",
+
+  // Gents collections
+  shirts: "/categories/shirts.jpg",
+  shirt: "/categories/shirts.jpg",
+  "t-shirts": "/categories/tshirts.jpg",
+  "t-shirt": "/categories/tshirts.jpg",
+  pants: "/categories/pants.jpg",
+  pant: "/categories/pants.jpg",
+  "gents-pants": "/categories/pants.jpg",
+  "track-suit": "/categories/tracksuit.jpg",
+  "three-forth": "/categories/pants.jpg",
+  shorts: "/categories/pants.jpg",
+  lungi: "/categories/lungi.jpg",
+  mundu: "/categories/mundu.jpg",
+
+  // Ladies collections
+  "readymade-churidars": "/categories/salvarsuits.jpg",
+  "readymade-churidar": "/categories/salvarsuits.jpg",
   sarees: "/categories/saree.jpg",
   saree: "/categories/saree.jpg",
   kurtis: "/categories/kurtis.avif",
   kurti: "/categories/kurtis.avif",
+  kurthies: "/categories/kurtis.avif",
+  kurthi: "/categories/kurtis.avif",
+  "cot-set": "/categories/cotset.jpg",
+  "ladies-pants": "/categories/pants.jpg",
+  blouses: "/categories/blouse.webp",
+  blouse: "/categories/blouse.webp",
+  "night-wears": "/categories/nightwears.jpg",
+  "night-wear": "/categories/nightwears.jpg",
+
+  // Kids collections
+  "boys-girls": "/categories/kids.jpg",
+  "boys-and-girls": "/categories/kids.jpg",
+
+  // Accessories collections
+  belts: "/categories/accessories.jpg",
+  belt: "/categories/accessories.jpg",
+  socks: "/categories/accessories.jpg",
+  caps: "/categories/accessories.jpg",
+  cap: "/categories/accessories.jpg",
+  "baby-shoes": "/categories/accessories.jpg",
+  perfumes: "/categories/perfumes.jpg",
+  perfume: "/categories/perfumes.jpg",
+
+  // Classic collections
   "ethnic-wear": "/categories/ethnicwear.jpg",
   ethnicwear: "/categories/ethnicwear.jpg",
   dresses: "/categories/dresses.jpg",
   dress: "/categories/dresses.jpg",
-  blouses: "/categories/blouse.webp",
-  blouse: "/categories/blouse.webp",
-  accessories: "/categories/accessories.jpg",
-  accessory: "/categories/accessories.jpg",
   lehengas: "/categories/lehenga.jpg",
   lehenga: "/categories/lehenga.jpg",
   "salwar-suits": "/categories/salvarsuits.jpg",
