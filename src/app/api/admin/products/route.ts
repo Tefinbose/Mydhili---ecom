@@ -103,36 +103,49 @@ export async function POST(request: NextRequest) {
           .filter(Boolean)
       : [];
 
-    // Ignore completely empty variant rows.
+    // Ignore completely empty variant rows and expand comma-separated sizes automatically
     const submittedVariants = Array.isArray(body.variants)
       ? body.variants
       : [];
 
-    const variants = submittedVariants
-      .filter((variant: Record<string, unknown>) =>
-        [variant.sku, variant.size, variant.color].some(
-          (value) => String(value ?? "").trim() !== ""
-        )
-      )
-      .map((variant: Record<string, unknown>) => {
-        const rawSku = String(variant.sku ?? "").trim();
-        const size = String(variant.size ?? "").trim();
-        const color = String(variant.color ?? "").trim();
-        const sku =
-          rawSku ||
-          `${createSlug(name || "VAR")
-            .toUpperCase()
-            .slice(0, 8)}-${size.toUpperCase().replace(/\s+/g, "")}-${color
-            .toUpperCase()
-            .replace(/\s+/g, "")}`;
+    const variants: { sku: string; size: string; color: string; stock: number }[] = [];
 
-        return {
+    for (const variant of submittedVariants) {
+      const rawSku = String(variant?.sku ?? "").trim();
+      const rawSize = String(variant?.size ?? "").trim();
+      const color = String(variant?.color ?? "").trim();
+      const rawStock = Number(variant?.stock ?? 0);
+
+      if (!rawSku && !rawSize && !color && (variant?.stock === "" || variant?.stock == null)) {
+        continue;
+      }
+
+      // If the admin typed comma-separated sizes like "S, M, L", split them cleanly
+      const sizeList = rawSize.includes(",")
+        ? rawSize.split(",").map((s) => s.trim()).filter(Boolean)
+        : [rawSize];
+
+      const perStock = sizeList.length > 1
+        ? Math.max(0, Math.floor(rawStock / sizeList.length))
+        : rawStock;
+
+      sizeList.forEach((sz, idx) => {
+        const sku = rawSku && sizeList.length === 1
+          ? rawSku
+          : `${createSlug(name || "VAR")
+              .toUpperCase()
+              .slice(0, 8)}-${sz.toUpperCase().replace(/\s+/g, "")}-${(color || "STD")
+              .toUpperCase()
+              .replace(/\s+/g, "")}`;
+
+        variants.push({
           sku,
-          size,
-          color,
-          stock: Number(variant.stock ?? 0),
-        };
+          size: sz,
+          color: color || "Standard",
+          stock: idx === 0 && sizeList.length > 1 ? rawStock - perStock * (sizeList.length - 1) : perStock,
+        });
       });
+    }
 
     if (!name || !description || !categoryId) {
       return NextResponse.json(

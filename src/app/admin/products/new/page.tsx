@@ -377,15 +377,44 @@ export default function NewProductPage() {
                   </div>
 
                   <div>
-                    <label className={labelClass}>Size *</label>
+                    <div className="flex items-center justify-between">
+                      <label className={labelClass}>Size *</label>
+                      <span className="text-[10px] text-stone-400">Quick pick:</span>
+                    </div>
                     <input
                       value={variant.size}
                       onChange={(e) =>
                         updateVariant(index, "size", e.target.value)
                       }
-                      placeholder="e.g. Free Size, S, M, L, XL"
+                      placeholder="e.g. S, M, L or Free Size"
                       className={inputClass}
                     />
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {["Free Size", "S", "M", "L", "XL", "XXL", "36", "38"].map((sz) => {
+                        const currentSizes = variant.size.split(",").map((s) => s.trim()).filter(Boolean);
+                        const isPicked = currentSizes.includes(sz);
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => {
+                              if (isPicked) {
+                                updateVariant(index, "size", currentSizes.filter((s) => s !== sz).join(", "));
+                              } else {
+                                updateVariant(index, "size", currentSizes.length ? `${currentSizes.join(", ")}, ${sz}` : sz);
+                              }
+                            }}
+                            className={`rounded-md border px-2 py-0.5 text-[11px] font-medium transition ${
+                              isPicked
+                                ? "border-[#380712] bg-[#380712] text-[#E6C47A]"
+                                : "border-stone-200 bg-white text-stone-600 hover:border-[#D4AF69] hover:bg-[#FAF7F2]"
+                            }`}
+                          >
+                            {sz}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div>

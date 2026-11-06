@@ -506,9 +506,12 @@ export default function EditProductPage() {
                     </div>
 
                     <div className="lg:col-span-2">
-                      <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-600 block mb-1">
-                        Size
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-600">
+                          Size
+                        </label>
+                        <span className="text-[10px] text-stone-400">Quick pick</span>
+                      </div>
                       <input
                         value={variant.size}
                         onChange={(e) =>
@@ -517,6 +520,32 @@ export default function EditProductPage() {
                         placeholder="e.g. Free Size, S, M, XL"
                         className="w-full rounded-xl border border-[#E9DFD2] bg-white px-3 py-2 text-xs font-semibold text-[#380712] outline-none transition focus:border-[#9A6B35]"
                       />
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {["Free Size", "S", "M", "L", "XL", "XXL", "36", "38"].map((sz) => {
+                          const currentSizes = String(variant.size || "").split(",").map((s) => s.trim()).filter(Boolean);
+                          const isPicked = currentSizes.includes(sz);
+                          return (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => {
+                                if (isPicked) {
+                                  updateVariant(index, "size", currentSizes.filter((s) => s !== sz).join(", "));
+                                } else {
+                                  updateVariant(index, "size", currentSizes.length ? `${currentSizes.join(", ")}, ${sz}` : sz);
+                                }
+                              }}
+                              className={`rounded-md border px-2 py-0.5 text-[10px] font-medium transition ${
+                                isPicked
+                                  ? "border-[#380712] bg-[#380712] text-[#E6C47A]"
+                                  : "border-stone-200 bg-white text-stone-600 hover:border-[#D4AF69] hover:bg-[#FAF7F2]"
+                              }`}
+                            >
+                              {sz}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div className="lg:col-span-2">

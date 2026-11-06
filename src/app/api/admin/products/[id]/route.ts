@@ -21,22 +21,22 @@ function createSlug(value: string) {
 
 function validateVariants(input: unknown, productName = "") {
   if (!Array.isArray(input)) {
-    return { valid: false, variants: [], message: "Invalid variants." };
+    return { valid: false, variants: [] as { sku: string; size: string; color: string; stock: number }[], message: "Invalid variants." };
   }
 
-  const variants = [];
+  const variants: { sku: string; size: string; color: string; stock: number }[] = [];
 
   for (const item of input) {
     const rawSku = String(item?.sku || "").trim();
-    const size = String(item?.size || "").trim();
+    const rawSize = String(item?.size || "").trim();
     const color = String(item?.color || "").trim();
 
     // Ignore completely empty variant rows.
-    if (!rawSku && !size && !color && (item?.stock === "" || item?.stock == null)) {
+    if (!rawSku && !rawSize && !color && (item?.stock === "" || item?.stock == null)) {
       continue;
     }
 
-    if (!size || !color) {
+    if (!rawSize || !color) {
       return {
         valid: false,
         variants: [],
@@ -44,17 +44,9 @@ function validateVariants(input: unknown, productName = "") {
       };
     }
 
-    const sku =
-      rawSku ||
-      `${createSlug(productName || "VAR")
-        .toUpperCase()
-        .slice(0, 8)}-${size.toUpperCase().replace(/\s+/g, "")}-${color
-        .toUpperCase()
-        .replace(/\s+/g, "")}`;
+    const rawStock = Number(item?.stock ?? 0);
 
-    const stock = Number(item?.stock ?? 0);
-
-    if (!Number.isInteger(stock) || stock < 0) {
+    if (!Number.isInteger(rawStock) || rawStock < 0) {
       return {
         valid: false,
         variants: [],
@@ -62,7 +54,31 @@ function validateVariants(input: unknown, productName = "") {
       };
     }
 
-    variants.push({ sku, size, color, stock });
+    // Auto-split comma-separated sizes like "S, M, L" into distinct variants
+    const sizeList = rawSize.includes(",")
+      ? rawSize.split(",").map((s) => s.trim()).filter(Boolean)
+      : [rawSize];
+
+    const perStock = sizeList.length > 1
+      ? Math.max(0, Math.floor(rawStock / sizeList.length))
+      : rawStock;
+
+    sizeList.forEach((sz, idx) => {
+      const sku = rawSku && sizeList.length === 1
+        ? rawSku
+        : `${createSlug(productName || "VAR")
+            .toUpperCase()
+            .slice(0, 8)}-${sz.toUpperCase().replace(/\s+/g, "")}-${color
+            .toUpperCase()
+            .replace(/\s+/g, "")}`;
+
+      variants.push({
+        sku,
+        size: sz,
+        color,
+        stock: idx === 0 && sizeList.length > 1 ? rawStock - perStock * (sizeList.length - 1) : perStock,
+      });
+    });
   }
 
   return { valid: true, variants, message: "" };

@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowUpRight, CircleCheck, CircleX, RefreshCw, ShieldCheck, 
 
 import { prisma } from "@/lib/prisma";
 import ProductPurchaseOptions from "@/components/cart/ProductPurchaseOptions";
+import ProductGallery from "@/components/products/ProductGallery";
 
 export const instant = false;
 
@@ -135,48 +136,14 @@ export default async function ProductDetailPage({
         </nav>
 
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-14">
-          {/* Gallery */}
-          <section className="min-w-0 lg:sticky lg:top-28 lg:self-start">
-            <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-[#380712] to-[#6D2636] shadow-[0_24px_60px_rgba(56,7,18,0.14)]">
-              {imageUrl ? (
-                <Image
-                  src={imageUrl}
-                  alt={product.name}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover transition-transform duration-700 ease-out hover:scale-105"
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-3 px-8 text-center text-[#E6C47A]">
-                  <ShoppingBag size={52} strokeWidth={1.1} />
-                  <p className="text-xl font-semibold tracking-[-0.02em]">Mydhili Collections</p>
-                  <p className="text-sm font-light text-white/60">Product image coming soon</p>
-                </div>
-              )}
-
-              <div className="absolute left-4 top-4 flex flex-col items-start gap-2">
-                {hasDiscount && <span className={`${pill} bg-[#D4AF69]`}>Save {discount}%</span>}
-                {product.isFeatured && <span className={`${pill} bg-white/90 backdrop-blur-sm`}>Featured</span>}
-              </div>
-            </div>
-
-            {images.length > 1 && (
-              <div className="mt-3 grid grid-cols-4 gap-3">
-                {images.slice(1, 5).map((image, index) => (
-                  <div key={`${image}-${index}`} className="group/thumb relative aspect-[3/4] overflow-hidden rounded-xl bg-[#F0E9DF]">
-                    <Image
-                      src={image}
-                      alt={`${product.name} - view ${index + 2}`}
-                      fill
-                      sizes="(max-width: 1024px) 25vw, 12vw"
-                      className="object-cover transition-transform duration-500 ease-out group-hover/thumb:scale-110"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          {/* Gallery with Full Carousel, Arrow Controls & Thumbnails */}
+          <ProductGallery
+            name={product.name}
+            images={images}
+            hasDiscount={hasDiscount}
+            discount={discount}
+            isFeatured={product.isFeatured}
+          />
 
           {/* Information */}
           <section className="flex min-w-0 flex-col">

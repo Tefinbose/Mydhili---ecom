@@ -36,15 +36,34 @@ function OptionGroup({ title, value, placeholder, values, isAvailable, onSelect,
         <h2 className="text-sm font-semibold">{title}</h2>
         <span className="text-xs font-light text-stone-500">{value || placeholder}</span>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {values.map((v) => (
-          <button
-            key={v} type="button" disabled={!isAvailable(v)} onClick={() => onSelect(v)}
-            className={`${round ? "px-5" : "min-w-12 px-4"} rounded-full border py-2.5 text-sm font-medium transition-all duration-300 disabled:cursor-not-allowed disabled:line-through disabled:opacity-35 ${value === v ? "border-[#380712] bg-[#380712] text-[#E6C47A]" : "border-[#E3D7CA] bg-white hover:border-[#D4AF69]"}`}
-          >
-            {v}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2.5">
+        {values.map((v) => {
+          const available = isAvailable(v);
+          const isSelected = value === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              disabled={!available}
+              onClick={() => onSelect(v)}
+              aria-label={`${title}: ${v}`}
+              aria-pressed={isSelected}
+              className={`relative flex items-center justify-center font-medium transition-all duration-200 active:scale-95 disabled:pointer-events-none ${
+                round
+                  ? "h-11 min-w-[3.5rem] rounded-full px-5 text-xs uppercase tracking-wider"
+                  : "h-11 min-w-[3.25rem] rounded-xl px-4 text-xs font-semibold tracking-wide"
+              } ${
+                isSelected
+                  ? "border-2 border-[#380712] bg-[#380712] text-[#E6C47A] shadow-sm"
+                  : available
+                  ? "border border-[#E3D7CA] bg-white text-[#380712] hover:border-[#D4AF69] hover:bg-[#FAF7F2]"
+                  : "border border-dashed border-stone-300 bg-stone-100 text-stone-400 line-through opacity-50"
+              }`}
+            >
+              {v}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -68,7 +87,25 @@ export default function ProductDetails({ product }: { product: Product }) {
     return valid.length ? valid : [fallbackImage];
   }, [product.images]);
 
-  const variants = product.variants || [];
+  const rawVariants = product.variants || [];
+  // Normalize variants: if an admin entered comma-separated sizes like "S, M, L", expand them so each gets its own clean button
+  const variants = useMemo(() => {
+    const list: ProductVariant[] = [];
+    for (const v of rawVariants) {
+      const rawSize = String(v.size || "").trim();
+      if (rawSize.includes(",")) {
+        const splitSizes = rawSize.split(",").map((s) => s.trim()).filter(Boolean);
+        const perStock = Math.max(1, Math.floor((v.stock ?? 0) / splitSizes.length));
+        splitSizes.forEach((s) => {
+          list.push({ ...v, size: s, stock: perStock });
+        });
+      } else {
+        list.push(v);
+      }
+    }
+    return list;
+  }, [rawVariants]);
+
   const hasVariants = variants.length > 0;
   const sizes = useMemo(() => Array.from(new Set(variants.map((v) => v.size).filter((s): s is string => Boolean(s)))), [variants]);
   const colors = useMemo(() => Array.from(new Set(variants.map((v) => v.color).filter((c): c is string => Boolean(c)))), [variants]);
