@@ -424,9 +424,29 @@ export default function NewProductPage() {
                       onChange={(e) =>
                         updateVariant(index, "color", e.target.value)
                       }
-                      placeholder="e.g. Royal Maroon, Mustard Gold"
+                      placeholder="e.g. Royal Maroon, Green, Red"
                       className={inputClass}
                     />
+                    {images.length > 0 && (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-stone-500">
+                        <span className="text-[10px] uppercase tracking-wider text-[#9A6B35]">Link Photo:</span>
+                        <select
+                          value={(variant as any).imageIndex ?? ""}
+                          onChange={(e) => {
+                            const imgIdx = e.target.value === "" ? undefined : Number(e.target.value);
+                            updateVariant(index, "imageIndex" as any, imgIdx as any);
+                          }}
+                          className="rounded border border-[#E9DFD2] bg-white px-2 py-0.5 text-xs text-[#380712] outline-none"
+                        >
+                          <option value="">Default (Photo 1)</option>
+                          {images.map((img, i) => (
+                            <option key={img} value={i}>
+                              Photo {i + 1}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   <div>

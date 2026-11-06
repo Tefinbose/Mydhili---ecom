@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 
@@ -26,6 +26,42 @@ export default function ProductGallery({
   );
   const total = cleanImages.length;
   const currentImage = cleanImages[activeIndex] || "";
+
+  // Listen to colour selection events from ProductPurchaseOptions
+  useEffect(() => {
+    function handleColorChange(event: Event) {
+      const customEvent = event as CustomEvent<{ color: string; imageIndex?: number }>;
+      const { color, imageIndex } = customEvent.detail || {};
+
+      // 1. Direct photo index link from variant
+      if (typeof imageIndex === "number" && imageIndex >= 0 && imageIndex < cleanImages.length) {
+        setActiveIndex(imageIndex);
+        return;
+      }
+
+      const selectedColor = (color || "").toLowerCase().trim();
+      if (!selectedColor || cleanImages.length <= 1) return;
+
+      // 2. Try matching by filename (e.g. "kids-green.jpg", "green_dress.png")
+      const matchedByFilenameIndex = cleanImages.findIndex((url) => {
+        const filename = url.toLowerCase().split("/").pop() || "";
+        return (
+          filename.includes(selectedColor) ||
+          filename.includes(selectedColor.replace(/\s+/g, "-")) ||
+          filename.includes(selectedColor.replace(/\s+/g, "_"))
+        );
+      });
+
+      if (matchedByFilenameIndex >= 0) {
+        setActiveIndex(matchedByFilenameIndex);
+      }
+    }
+
+    window.addEventListener("product-color-selected", handleColorChange);
+    return () => {
+      window.removeEventListener("product-color-selected", handleColorChange);
+    };
+  }, [cleanImages]);
 
   const prevImage = () => {
     setActiveIndex((prev) => (prev === 0 ? total - 1 : prev - 1));
@@ -142,4 +178,3 @@ export default function ProductGallery({
     </section>
   );
 }
-

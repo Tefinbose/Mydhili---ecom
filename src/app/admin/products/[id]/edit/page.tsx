@@ -560,6 +560,26 @@ export default function EditProductPage() {
                         placeholder="e.g. Royal Maroon"
                         className="w-full rounded-xl border border-[#E9DFD2] bg-white px-3 py-2 text-xs font-semibold text-[#380712] outline-none transition focus:border-[#9A6B35]"
                       />
+                      {images.length > 0 && (
+                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-stone-500">
+                          <span className="text-[10px] uppercase tracking-wider text-[#9A6B35]">Link Photo:</span>
+                          <select
+                            value={(variant as any).imageIndex ?? ""}
+                            onChange={(e) => {
+                              const imgIdx = e.target.value === "" ? undefined : Number(e.target.value);
+                              updateVariant(index, "imageIndex" as any, imgIdx as any);
+                            }}
+                            className="rounded border border-[#E9DFD2] bg-white px-1.5 py-0.5 text-[11px] text-[#380712] outline-none"
+                          >
+                            <option value="">Default (Photo 1)</option>
+                            {images.map((img, i) => (
+                              <option key={img} value={i}>
+                                Photo {i + 1}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
 
                     <div className="lg:col-span-1">

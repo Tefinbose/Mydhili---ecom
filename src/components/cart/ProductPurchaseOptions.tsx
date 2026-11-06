@@ -120,6 +120,20 @@ export default function ProductPurchaseOptions({
       (variant) => (variant.color ?? "") === color
     );
 
+    const targetVariant = matchingVariants[0];
+
+    // Notify gallery to switch photo if a matching image is found
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("product-color-selected", {
+          detail: {
+            color,
+            imageIndex: (targetVariant as any)?.imageIndex,
+          },
+        })
+      );
+    }
+
     if (
       !matchingVariants.some(
         (variant) => (variant.size ?? "") === selectedSize
